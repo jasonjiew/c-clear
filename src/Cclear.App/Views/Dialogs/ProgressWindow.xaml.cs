@@ -2,11 +2,12 @@ using System.ComponentModel;
 using System.Windows;
 using Cclear.Core;
 using Cclear.Core.Cleaner;
+using Wpf.Ui.Controls;
 
 namespace Cclear.App.Views.Dialogs;
 
 /// <summary>清理进度窗口：完成时由外部 Close；未完成时关闭=请求取消。</summary>
-public partial class ProgressWindow : Window
+public partial class ProgressWindow : FluentWindow
 {
     private readonly TaskCompletionSource<bool> _completedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _cancelled;

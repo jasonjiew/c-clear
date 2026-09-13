@@ -5,7 +5,7 @@
         <StackPanel Margin="16">
             <TextBlock Text="C 盘空间" FontSize="18" FontWeight="Bold" />
             <ProgressBar Height="18" Minimum="0" Maximum="100" Value="{Binding UsedPercent}" Margin="0,8" />
-            <TextBlock Text="{Binding DriveDetail}" Foreground="#444" />
+            <TextBlock Text="{Binding DriveDetail}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
             <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                 <Button Content="一键体检" Command="{Binding HealthCheckCommand}"
@@ -13,7 +13,7 @@
                 <Button Content="深度分析（大文件/类型统计）" Command="{Binding DeepScanCommand}"
                         Margin="10,0,0,0" MinHeight="38" />
             </StackPanel>
-            <TextBlock Text="{Binding StatusText}" Foreground="Gray" Margin="0,10,0,0" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,10,0,0" TextWrapping="Wrap" />
 
             <TextBlock Text="大文件 Top 50（≥100 MB）" FontSize="15" FontWeight="Bold" Margin="0,20,0,4" />
             <ListView ItemsSource="{Binding LargeFiles}" MaxHeight="280"

@@ -46,8 +46,8 @@
                                                 <StackPanel Orientation="Horizontal" Margin="0,1">
                                                     <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center"
                                                               ToolTip="勾选=删除；每组建议保留一份" />
-                                                    <TextBlock Text="{Binding SizeText}" Foreground="DarkSlateGray" Margin="8,0,0,0" MinWidth="70" />
-                                                    <TextBlock Text="{Binding LastWriteText}" Foreground="Gray" Margin="8,0,0,0" MinWidth="120" />
+                                                    <TextBlock Text="{Binding SizeText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="8,0,0,0" MinWidth="70" />
+                                                    <TextBlock Text="{Binding LastWriteText}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="8,0,0,0" MinWidth="120" />
                                                     <TextBlock Text="{Binding Path}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
                                                                ToolTip="{Binding Path}" MaxWidth="640" />
                                                 </StackPanel>

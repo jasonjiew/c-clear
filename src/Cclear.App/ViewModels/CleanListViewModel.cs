@@ -84,6 +84,8 @@ public sealed partial class CleanListViewModel : ObservableObject
                     .GetAwaiter().GetResult());
             _dialogs.ShowResult(result, (_cleaner as ShellCleaner)?.LastAuditLogPath ?? "",
                 selected.Sum(c => c.EstimatedBytes));
+            UiServices.ToastSuccess("清理完成",
+                $"实际释放 {ByteSizeFormatter.Format(result.FreedBytes)}，删除 {result.DeletedFiles:N0} 项");
             Categories.Clear();
             SummaryText = $"清理完成：实际释放 {ByteSizeFormatter.Format(result.FreedBytes)}"
                 + $"（删除 {result.DeletedFiles:N0} 项，跳过 {result.SkippedFiles:N0} 项）。可到“总览”重新体检。";
@@ -132,6 +134,7 @@ public sealed partial class CleanCategoryViewModel : ObservableObject
 
     public CleanCategory Category { get; }
     public string DisplayName => Category.DisplayName;
+    public SafetyLevel Level => Category.Level;
     public string LevelText { get; }
     public string LevelBrush { get; }
     public string SizeText { get; }

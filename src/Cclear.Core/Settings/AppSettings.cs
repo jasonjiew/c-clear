@@ -21,6 +21,9 @@ public sealed class AppSettings
     /// <summary>永久删除开关（默认关=进回收站；开启后清理需额外二次确认）。</summary>
     public bool PermanentDelete { get; set; }
 
+    /// <summary>界面主题：Light / Dark / System（跟随系统，默认）。</summary>
+    public string Theme { get; set; } = "System";
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "C-Clear", "settings.json");

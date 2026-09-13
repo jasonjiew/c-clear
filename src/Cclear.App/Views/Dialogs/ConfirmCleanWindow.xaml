@@ -1,7 +1,8 @@
-<Window x:Class="Cclear.App.Views.Dialogs.ConfirmCleanWindow"
+<ui:FluentWindow x:Class="Cclear.App.Views.Dialogs.ConfirmCleanWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="确认清理" Width="620" SizeToContent="Height"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="确认清理" Width="620" SizeToContent="Height" MaxHeight="720"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         ShowInTaskbar="False">
     <StackPanel Margin="16">
@@ -13,21 +14,22 @@
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding Checked}" IsEnabled="False" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding Name}" Margin="8,0,0,0" />
-                        <TextBlock Text="{Binding LevelText}" Foreground="{Binding LevelBrush}" Margin="10,0,0,0" />
-                        <TextBlock Text="{Binding SizeText}" Foreground="DarkSlateGray" Margin="10,0,0,0" />
-                        <TextBlock Text="{Binding FileCountText}" Foreground="Gray" Margin="6,0,0,0" />
+                        <TextBlock Text="{Binding LevelText}" Foreground="{Binding Level, Converter={StaticResource SafetyLevelToBrush}}" Margin="10,0,0,0" />
+                        <TextBlock Text="{Binding SizeText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="10,0,0,0" />
+                        <TextBlock Text="{Binding FileCountText}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="6,0,0,0" />
                     </StackPanel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <TextBlock x:Name="RecycleHint" Text="删除将进入回收站，可随时还原。" Foreground="#2E7D32"
-                   FontWeight="SemiBold" Margin="0,4,0,0" />
+        <TextBlock x:Name="RecycleHint" Text="删除将进入回收站，可随时还原。" Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                   FontWeight="SemiBold" Margin="0,4,0,0" TextWrapping="Wrap" />
         <TextBlock x:Name="BinWarning" Text="注意：包含“清空回收站”，该部分不可再还原，请确认回收站内没有需要的东西。"
-                   Foreground="#C62828" FontWeight="SemiBold" Margin="0,4,0,0" Visibility="Collapsed" />
+                   Foreground="{DynamicResource SystemFillColorCriticalBrush}" FontWeight="SemiBold" Margin="0,4,0,0"
+                   Visibility="Collapsed" TextWrapping="Wrap" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button Content="取消" IsCancel="True" MinWidth="88" MinHeight="30" Margin="0,0,8,0" />
-            <Button Content="确认清理" IsDefault="True" Click="OnConfirm" MinWidth="110" MinHeight="30"
-                    FontWeight="SemiBold" />
+            <ui:Button Content="确认清理" IsDefault="True" Click="OnConfirm" MinWidth="110" MinHeight="30"
+                       FontWeight="SemiBold" Appearance="Success" />
         </StackPanel>
     </StackPanel>
-</Window>
+</ui:FluentWindow>

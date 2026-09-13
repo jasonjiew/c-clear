@@ -1,8 +1,16 @@
 <Application x:Class="Cclear.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml">
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:converters="clr-namespace:Cclear.App.Converters">
     <Application.Resources>
-
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!--  WPF-UI Fluent 主题字典（启动时由 ThemeService 按设置覆盖为浅色/深色/跟随系统）  -->
+                <ui:ThemesDictionary Theme="Light" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:SafetyLevelToBrushConverter x:Key="SafetyLevelToBrush" />
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

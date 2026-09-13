@@ -1,10 +1,11 @@
 using System.Windows;
 using Cclear.Core;
 using Cclear.Core.Cleaner;
+using Wpf.Ui.Controls;
 
 namespace Cclear.App.Views.Dialogs;
 
-public partial class ResultWindow : Window
+public partial class ResultWindow : FluentWindow
 {
     public ResultWindow(CleanResult result, string auditLogPath, long movedBytes)
     {

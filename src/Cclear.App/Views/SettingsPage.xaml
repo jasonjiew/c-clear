@@ -3,8 +3,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="16">
-            <TextBlock Text="排除目录" FontSize="16" FontWeight="Bold" />
-            <TextBlock Text="扫描与体检将跳过这些目录（子树整体排除）。" Foreground="Gray" Margin="0,2,0,6" />
+            <TextBlock Text="外观" FontSize="16" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                <TextBlock Text="主题模式：" VerticalAlignment="Center" />
+                <ComboBox ItemsSource="{Binding ThemeOptions}"
+                          SelectedItem="{Binding SelectedTheme}"
+                          MinWidth="140" Margin="8,0,0,0" />
+                <TextBlock Text="跟随系统将随 Windows 深浅色自动切换" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           VerticalAlignment="Center" Margin="10,0,0,0" />
+            </StackPanel>
+
+            <TextBlock Text="排除目录" FontSize="16" FontWeight="Bold" Margin="0,16,0,0" />
+            <TextBlock Text="扫描与体检将跳过这些目录（子树整体排除）。" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,2,0,6" />
             <StackPanel Orientation="Horizontal">
                 <TextBox Width="480" Text="{Binding NewExcludedDir, UpdateSourceTrigger=PropertyChanged}"
                          VerticalContentAlignment="Center" />
@@ -27,13 +37,13 @@
             <StackPanel Orientation="Horizontal">
                 <CheckBox IsChecked="{Binding PermanentDelete}" VerticalAlignment="Center" />
                 <TextBlock Text="永久删除模式（默认关闭：删除进回收站可还原；开启后清理不进回收站且无法还原）"
-                           Margin="8,0,0,0" Foreground="#C62828" />
+                           Margin="8,0,0,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
             </StackPanel>
 
             <TextBlock Text="审计日志" FontSize="16" FontWeight="Bold" Margin="0,16,0,4" />
             <StackPanel Orientation="Horizontal">
                 <Button Content="打开日志文件夹" Command="{Binding OpenLogsFolderCommand}" MinWidth="120" MinHeight="28" />
-                <TextBlock Text="{Binding LogsFolder}" Foreground="Gray" Margin="10,0,0,0"
+                <TextBlock Text="{Binding LogsFolder}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="10,0,0,0"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </StackPanel>
 
@@ -57,7 +67,7 @@
                 </ListView.View>
             </ListView>
 
-            <TextBlock Text="{Binding StatusText}" Foreground="#2E7D32" Margin="0,10,0,0" />
+            <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Margin="0,10,0,0" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

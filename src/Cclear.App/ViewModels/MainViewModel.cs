@@ -1,10 +1,11 @@
 using Cclear.App.Services;
 using Cclear.Core.Cleaner;
+using Cclear.Core.Rules;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Cclear.App.ViewModels;
 
-/// <summary>主窗口外壳 VM：左侧导航 + 页面切换。</summary>
+/// <summary>主窗口外壳 VM：持有 5 个页面 VM；页面切换由 MainWindow 的 NavigationView 驱动。</summary>
 public sealed partial class MainViewModel : ObservableObject
 {
     public OverviewViewModel Overview { get; }
@@ -13,10 +14,8 @@ public sealed partial class MainViewModel : ObservableObject
     public DuplicatesViewModel Duplicates { get; }
     public SettingsViewModel Settings { get; }
 
-    public IReadOnlyList<object> Pages { get; }
-
-    [ObservableProperty]
-    private object? _currentPage;
+    /// <summary>体检完成后由 MainWindow 挂接：导航到清理清单页。</summary>
+    public Action<CleanPlan>? NavigateToCleanPlan { get; set; }
 
     public MainViewModel()
         : this(new ShellCleaner(), new DialogService())
@@ -32,9 +31,7 @@ public sealed partial class MainViewModel : ObservableObject
         Overview = new OverviewViewModel(plan =>
         {
             CleanList.LoadPlan(plan);
-            CurrentPage = CleanList;
+            NavigateToCleanPlan?.Invoke(plan);
         });
-        Pages = new object[] { Overview, SpaceAnalysis, CleanList, Duplicates, Settings };
-        CurrentPage = Overview;
     }
 }
