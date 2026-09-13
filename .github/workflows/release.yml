@@ -33,5 +33,8 @@ jobs:
       - name: Attach to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/Cclear.App.exe
+          files: |
+            publish/Cclear.App.exe
+            rules-pack/rules-pack-v1.json
+            rules-pack/rules-pack-v1.json.sha256
           generate_release_notes: true

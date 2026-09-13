@@ -91,8 +91,7 @@ public static class RulePackLoader
     }
 
     internal static CleanupRule ToRule(JsonElement element, string sourceName)
-    {
-        RuleDto dto;
+    {        RuleDto dto;
         try
         {
             dto = element.Deserialize<RuleDto>(JsonOptions)
@@ -131,6 +130,28 @@ public static class RulePackLoader
             dto.ReportOnly,
             dto.ShellAction,
             dto.Cli is null ? null : new CleanupCli(dto.Cli.Command ?? "", dto.Cli.Args ?? ""));
+    }
+
+    /// <summary>CleanupRule → DTO（用于规则包生成；与 ToRule 互逆）。</summary>
+    internal static RuleDto ToDto(CleanupRule rule)
+    {
+        return new RuleDto
+        {
+            Id = rule.Id,
+            Name = rule.Name,
+            Level = rule.Level.ToString(),
+            Paths = rule.Paths.ToArray(),
+            ExpandAllUsers = rule.ExpandAllUsers,
+            Include = rule.IncludePatterns.ToArray(),
+            Exclude = rule.ExcludePatterns.ToArray(),
+            MinAgeDays = rule.MinAgeDays,
+            RequiresAdmin = rule.RequiresAdmin,
+            PreconditionProcesses = rule.PreconditionProcesses.ToArray(),
+            Explanation = rule.Explanation,
+            ReportOnly = rule.ReportOnly,
+            ShellAction = rule.ShellAction,
+            Cli = rule.Cli is null ? null : new CliDto { Command = rule.Cli.Command, Args = rule.Cli.Args },
+        };
     }
 
     internal sealed class RuleDto

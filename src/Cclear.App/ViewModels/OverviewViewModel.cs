@@ -154,12 +154,13 @@ public sealed partial class OverviewViewModel : ObservableObject
         StatusText = "正在体检…";
         try
         {
-            var rules = RulePackLoader.LoadEmbedded();
+            var rulesSource = RulesResolver.LoadActive();
+            var rules = rulesSource.Rules;
             _analyzer.ExcludePaths = Cclear.App.Services.SettingsStore.Instance.NormalizedExclusions();
             var progress = new Progress<CleanAnalysisProgress>(p =>
                 StatusText = $"体检中（{p.RulesDone}/{p.RulesTotal}）：{p.CurrentRule}");
             var plan = await _analyzer.BuildPlanAsync(rules, progress, CancellationToken.None);
-            StatusText = $"体检完成：{plan.Categories.Count} 类，预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}";
+            StatusText = $"体检完成（{rulesSource.Source}）：{plan.Categories.Count} 类，预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}";
             UpdateHealthScore(plan);
             _onPlanReady(plan);
         }

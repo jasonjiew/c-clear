@@ -27,6 +27,9 @@ public sealed class AppSettings
     /// <summary>最近一次成功清理的时间（UTC，用于健康分与趋势）。</summary>
     public DateTime? LastCleanAtUtc { get; set; }
 
+    /// <summary>启动时自动检查在线规则包更新（失败静默使用内置包）。</summary>
+    public bool CheckRulesUpdateOnStartup { get; set; } = true;
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "C-Clear", "settings.json");

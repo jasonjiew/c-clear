@@ -3,10 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <StackPanel Margin="8">
-        <TextBlock Text="规则库" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock Text="内置规则随应用分发、只读。在线规则包更新即将推出（来源 GitHub Releases，SHA256 校验 + HTTPS）。"
-                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,12" TextWrapping="Wrap" />
-        <ListView ItemsSource="{Binding Rules}" MinHeight="380" MaxHeight="520"
+        <TextBlock Text="在线规则包" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="规则包托管于 GitHub Releases，下载后经 SHA256 校验安装；每条规则仍受硬编码黑名单约束（用户文档永不被清理）。无网络或校验失败时自动使用内置规则，体检与清理完全可用。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,12" TextWrapping="Wrap" MaxWidth="820"
+                   HorizontalAlignment="Left" />
+        <StackPanel Orientation="Horizontal">
+            <ui:Button Content="检查更新" Icon="{ui:SymbolIcon ArrowClockwise24}" Appearance="Primary"
+                       Command="{Binding CheckRulesUpdateCommand}" MinWidth="110" MinHeight="34" />
+            <CheckBox Content="启动时自动检查更新" IsChecked="{Binding CheckRulesUpdateOnStartup}"
+                      VerticalAlignment="Center" Margin="16,0,0,0" />
+        </StackPanel>
+        <TextBlock Text="{Binding RulesPackStatusText}" Margin="0,10,0,0"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding RulesPackPath}" Margin="0,4,0,0" FontSize="12"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
+
+        <TextBlock Text="当前生效规则" FontSize="18" FontWeight="SemiBold" Margin="0,20,0,0" />
+        <ListView ItemsSource="{Binding Rules}" MinHeight="320" MaxHeight="420"
                   VirtualizingStackPanel.IsVirtualizing="True">
             <ListView.View>
                 <GridView>
