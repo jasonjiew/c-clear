@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
 using Cclear.App.Services;
 using Cclear.Core.Rules;
 
@@ -18,6 +20,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public SettingsViewModel()
     {
         _selectedTheme = ThemeService.StoredTheme;
+        // LiveCharts 画刷不走 DynamicResource，主题切换时原地重刷
+        ThemeService.ThemeChanged += HistoryChart.ApplyTheme;
         foreach (var dir in SettingsStore.Instance.ExcludedDirs)
         {
             ExcludedDirs.Add(dir);
@@ -71,9 +75,11 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string AppVersion => "v" + (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
 
-    /// <summary>最近 30 天每日清理字节数（F2 清理历史）。</summary>
-    public System.Collections.ObjectModel.ObservableCollection<double> HistoryTrendValues { get; } =
-        new(System.Linq.Enumerable.Repeat(0.0, 30));
+    /// <summary>最近 30 天清理趋势（LiveCharts，P1；轴与系列只创建一次，原地更新）。</summary>
+    public Services.TrendChartModel HistoryChart { get; } = new("清理量");
+
+    private double[] _historyValues = Array.Empty<double>();
+    private DateOnly[] _historyDates = Array.Empty<DateOnly>();
 
     [ObservableProperty]
     private string _historySummaryText = "暂无清理记录";
@@ -86,11 +92,9 @@ public sealed partial class SettingsViewModel : ObservableObject
             var entries = Cclear.Core.History.CleanHistoryStore.Read();
             var trend = Cclear.Core.History.CleanHistoryStore.BuildDailyTrend(
                 entries, 30, DateOnly.FromDateTime(DateTime.Now));
-            HistoryTrendValues.Clear();
-            foreach (var point in trend)
-            {
-                HistoryTrendValues.Add(point.Bytes);
-            }
+            _historyDates = trend.Select(p => p.Date).ToArray();
+            _historyValues = trend.Select(p => (double)p.Bytes).ToArray();
+            HistoryChart.Update(_historyDates, _historyValues);
             var total = trend.Sum(p => p.Bytes);
             var activeDays = trend.Count(p => p.Bytes > 0);
             HistorySummaryText = activeDays == 0

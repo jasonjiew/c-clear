@@ -7,6 +7,8 @@
     <AssemblyName>Cclear.App</AssemblyName>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- LiveCharts2 依赖链（SkiaSharp.Views.WPF 3.x）最低 Windows 10 19041，避免回退 net46x 资产触发 NU1701 -->
+    <TargetFramework>net8.0-windows10.0.19041</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.5" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 

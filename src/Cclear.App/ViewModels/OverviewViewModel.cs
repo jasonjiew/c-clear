@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
 using Cclear.Core;
 using Cclear.Core.Analysis;
 using Cclear.Core.Analyzer;
@@ -29,6 +31,8 @@ public sealed partial class OverviewViewModel : ObservableObject
     public OverviewViewModel(Action<CleanPlan> onPlanReady)
     {
         _onPlanReady = onPlanReady;
+        // LiveCharts 画刷不走 DynamicResource，主题切换时原地重刷
+        Services.ThemeService.ThemeChanged += TrendChart.ApplyTheme;
         Refresh();
     }
 
@@ -88,8 +92,11 @@ public sealed partial class OverviewViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasCloudData;
 
-    /// <summary>最近 30 天每日释放字节数（0 补齐）。</summary>
-    public ObservableCollection<double> TrendValues { get; } = new(Enumerable.Repeat(0.0, 30));
+    /// <summary>最近 30 天每日释放字节数（LiveCharts 折线，P1；轴与系列只创建一次，原地更新）。</summary>
+    public Services.TrendChartModel TrendChart { get; } = new("释放量");
+
+    private double[] _trendValues = Array.Empty<double>();
+    private DateOnly[] _trendDates = Array.Empty<DateOnly>();
 
     public ObservableCollection<LargeFileRow> LargeFiles { get; } = new();
 
@@ -150,7 +157,7 @@ public sealed partial class OverviewViewModel : ObservableObject
         }
     }
 
-    /// <summary>读取清理历史并聚合 30 天趋势（F2）。</summary>
+    /// <summary>读取清理历史并聚合 30 天趋势（F2；P1 升级为 LiveCharts）。</summary>
     private void LoadTrend()
     {
         IReadOnlyList<TrendPoint> trend;
@@ -163,11 +170,9 @@ public sealed partial class OverviewViewModel : ObservableObject
         {
             trend = Array.Empty<TrendPoint>();
         }
-        TrendValues.Clear();
-        foreach (var point in trend)
-        {
-            TrendValues.Add(point.Bytes);
-        }
+        _trendDates = trend.Select(p => p.Date).ToArray();
+        _trendValues = trend.Select(p => (double)p.Bytes).ToArray();
+        TrendChart.Update(_trendDates, _trendValues);
         var total = trend.Sum(p => p.Bytes);
         var activeDays = trend.Count(p => p.Bytes > 0);
         HasTrendData = activeDays > 0;

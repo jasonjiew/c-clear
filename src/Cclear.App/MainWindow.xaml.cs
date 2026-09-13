@@ -62,6 +62,7 @@ public partial class MainWindow : FluentWindow
                 SettingsPage => _vm.Settings,
                 _ => page.DataContext,
             };
+            AnimatePageEnter(page);
         }
         // 每次回到总览页刷新磁盘信息与清理趋势
         if (args is NavigatedEventArgs { Page: OverviewPage })
@@ -73,5 +74,16 @@ public partial class MainWindow : FluentWindow
         {
             _vm.DeepClean.OnNavigatedTo();
         }
+    }
+
+    /// <summary>页面切换内容淡入（V3 微交互，180ms）。</summary>
+    private static void AnimatePageEnter(FrameworkElement page)
+    {
+        page.Opacity = 0;
+        var animation = new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180))
+        {
+            EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut },
+        };
+        page.BeginAnimation(OpacityProperty, animation);
     }
 }

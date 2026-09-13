@@ -16,6 +16,9 @@ public static class ThemeService
 
     private static Window? _watchedWindow;
 
+    /// <summary>主题实际应用后触发（供 SkiaSharp 类无法用 DynamicResource 的组件重建画刷，如 LiveCharts）。</summary>
+    public static event Action? ThemeChanged;
+
     /// <summary>当前存储的主题（非法值按 System 处理）。</summary>
     public static string StoredTheme =>
         SettingsStore.Instance.Theme is Light or Dark or System ? SettingsStore.Instance.Theme : System;
@@ -56,6 +59,7 @@ public static class ThemeService
             _ => ToApplicationTheme(ApplicationThemeManager.GetSystemTheme()),
         };
         ApplicationThemeManager.Apply(appTheme, backdrop);
+        ThemeChanged?.Invoke();
     }
 
     private static ApplicationTheme ToApplicationTheme(SystemTheme system) => system switch
