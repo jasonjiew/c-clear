@@ -28,7 +28,7 @@ public sealed partial class MainViewModel : ObservableObject
         SpaceAnalysis = new ScanViewModel();
         CleanList = new CleanListViewModel(cleaner, dialogs);
         Duplicates = new DuplicatesViewModel(cleaner, dialogs);
-        DeepClean = new DeepCleanViewModel();
+        DeepClean = new DeepCleanViewModel(cleaner, dialogs);
         Settings = new SettingsViewModel();
         Overview = new OverviewViewModel(plan =>
         {

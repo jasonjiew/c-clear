@@ -1,11 +1,16 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Cclear.App.Services;
 using Cclear.Core;
+using Cclear.Core.Cleaner;
 using Cclear.Core.DeepClean;
+using Cclear.Core.Leftovers;
+using Cclear.Core.Rules;
 using Cclear.Core.Win32;
 
 namespace Cclear.App.ViewModels;
@@ -13,10 +18,19 @@ namespace Cclear.App.ViewModels;
 /// <summary>深度清理引导页（V2 F4）：只引导不代删；执行项均有管理员检测与二次确认。</summary>
 public sealed partial class DeepCleanViewModel : ObservableObject
 {
+    private readonly ICleaner _cleaner;
+    private readonly ICleanDialogs _dialogs;
+
     public string Title => "深度清理";
 
-    public DeepCleanViewModel()
+    public DeepCleanViewModel() : this(new ShellCleaner(), new DialogService())
     {
+    }
+
+    public DeepCleanViewModel(ICleaner cleaner, ICleanDialogs dialogs)
+    {
+        _cleaner = cleaner;
+        _dialogs = dialogs;
         IsAdmin = SystemCheck.IsAdministrator();
         RefreshHibernation();
     }
@@ -231,4 +245,159 @@ public sealed partial class DeepCleanViewModel : ObservableObject
             UiServices.ToastWarning("系统还原", "打开系统设置失败：" + ex.Message);
         }
     }
+
+    // ---------- 卸载残留扫描（V3 P5，Pro 底座：只引导，用户勾选后进回收站） ----------
+
+    [ObservableProperty]
+    private bool _isLeftoverBusy;
+
+    [ObservableProperty]
+    private string _leftoverStatusText = "";
+
+    [ObservableProperty]
+    private string _leftoverSummaryText = "";
+
+    public ObservableCollection<LeftoverRow> LeftoverRows { get; } = new();
+
+    public bool HasLeftoverResults => LeftoverRows.Count > 0;
+
+    /// <summary>当前许可证是否已激活残留扫描（未激活显示 Pro 徽标但功能可用）。</summary>
+    public bool LeftoverIsPro =>
+        Cclear.Core.Licensing.LicenseService.HasFeature(Cclear.Core.Licensing.LicenseService.FeatureLeftoverScan);
+
+    partial void OnIsLeftoverBusyChanged(bool value)
+    {
+        ScanLeftoversCommand.NotifyCanExecuteChanged();
+        DeleteLeftoversCommand.NotifyCanExecuteChanged();
+    }
+
+    public bool CanScanLeftovers => !IsLeftoverBusy;
+    public bool CanDeleteLeftovers => !IsLeftoverBusy && LeftoverRows.Any(r => r.IsChecked && r.Deletable);
+
+    private void RefreshLeftoverCommandStates()
+    {
+        OnPropertyChanged(nameof(HasLeftoverResults));
+        OnPropertyChanged(nameof(CanDeleteLeftovers));
+        DeleteLeftoversCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanScanLeftovers))]
+    private async Task ScanLeftoversAsync()
+    {
+        IsLeftoverBusy = true;
+        LeftoverStatusText = "正在读取卸载登记与数据目录…";
+        LeftoverRows.Clear();
+        LeftoverSummaryText = "";
+        try
+        {
+            var report = await Task.Run(() => UninstallLeftoverScanner.Scan(
+                new UninstallLeftoverScanner.RegistryUninstallSource(),
+                UninstallLeftoverScanner.DefaultRoots(),
+                LeftoverScanOptions.Default));
+            foreach (var candidate in report.Candidates)
+            {
+                var row = new LeftoverRow(candidate);
+                row.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(LeftoverRow.IsChecked))
+                    {
+                        RefreshLeftoverCommandStates();
+                    }
+                };
+                LeftoverRows.Add(row);
+            }
+            var deletable = report.Candidates.Count(c => c.Deletable);
+            var deletableBytes = report.Candidates.Where(c => c.Deletable).Sum(c => c.SizeBytes);
+            LeftoverSummaryText = report.Candidates.Count == 0
+                ? "没有发现已卸载应用的孤儿目录。"
+                : $"发现 {report.Candidates.Count} 个候选（可清理 {deletable} 个，"
+                  + $"约 {ByteSizeFormatter.Format(deletableBytes)}；其余位于受保护目录仅提示）。";
+            LeftoverStatusText = $"扫描完成：比对了 {report.ScannedDirectories} 个目录，用时 {report.Elapsed.TotalSeconds:F1} 秒";
+        }
+        catch (Exception ex)
+        {
+            LeftoverStatusText = "扫描失败：" + ex.Message;
+        }
+        finally
+        {
+            IsLeftoverBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanDeleteLeftovers))]
+    private void DeleteLeftovers()
+    {
+        var selected = LeftoverRows
+            .Where(r => r.IsChecked && r.Deletable)
+            .Select(r => new CleanItem(r.Path, r.SizeBytesValue, r.LastWriteUtcValue))
+            .ToList();
+        if (selected.Count == 0)
+        {
+            return;
+        }
+        bool permanent = SettingsStore.Instance.PermanentDelete;
+        var category = new CleanCategory(
+            "uninstall-leftovers", "卸载残留（已卸载应用的孤儿目录）", SafetyLevel.Caution,
+            selected.Sum(i => i.SizeBytes), selected.Count, selected,
+            "用户勾选的已卸载应用残留目录；进回收站可还原", IsShellAction: false);
+        IsLeftoverBusy = true;
+        try
+        {
+            if (!_dialogs.ConfirmClean([category], useRecycleBin: !permanent))
+            {
+                return;
+            }
+            var result = _dialogs.RunWithProgress((progress, ct) =>
+                _cleaner.ExecuteAsync([category], new CleanOptions(UseRecycleBin: !permanent), progress, ct)
+                    .GetAwaiter().GetResult());
+            _dialogs.ShowResult(result, (_cleaner as ShellCleaner)?.LastAuditLogPath ?? "", category.EstimatedBytes);
+            UiServices.ToastSuccess("卸载残留", $"已清理 {result.DeletedFiles:N0} 项，释放 {ByteSizeFormatter.Format(result.FreedBytes)}");
+            foreach (var row in LeftoverRows.Where(r => r.IsChecked && r.Deletable).ToList())
+            {
+                LeftoverRows.Remove(row);
+            }
+            RefreshLeftoverCommandStates();
+        }
+        catch (Exception ex)
+        {
+            UiServices.ToastWarning("卸载残留", "清理失败：" + ex.Message);
+        }
+        finally
+        {
+            IsLeftoverBusy = false;
+        }
+    }
+}
+
+/// <summary>卸载残留候选行 VM。</summary>
+public sealed partial class LeftoverRow : ObservableObject
+{
+    public LeftoverRow(LeftoverCandidate candidate)
+    {
+        Path = candidate.Path;
+        InferredName = candidate.InferredName;
+        SizeBytesValue = candidate.SizeBytes;
+        LastWriteUtcValue = candidate.LastWriteUtc;
+        SizeText = candidate.Deletable
+            ? ByteSizeFormatter.Format(candidate.SizeBytes)
+            : "受保护（仅提示）";
+        LastWriteText = candidate.LastWriteUtc == default
+            ? ""
+            : candidate.LastWriteUtc.ToLocalTime().ToString("yyyy-MM-dd");
+        HintText = candidate.Deletable ? "" : "位于 Program Files 等受保护目录，请手动处理";
+        _isChecked = candidate.Deletable;
+        Deletable = candidate.Deletable;
+    }
+
+    public string Path { get; }
+    public string InferredName { get; }
+    public long SizeBytesValue { get; }
+    public DateTime LastWriteUtcValue { get; }
+    public string SizeText { get; }
+    public string LastWriteText { get; }
+    public string HintText { get; }
+    public bool Deletable { get; }
+
+    [ObservableProperty]
+    private bool _isChecked;
 }
