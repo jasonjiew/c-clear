@@ -304,7 +304,7 @@ public sealed class ShellCleaner : ICleaner
         }
     }
 
-    /// <summary>shellAction 类（当前=清空回收站）：只经 Shell API。</summary>
+    /// <summary>shellAction 类（当前=清空回收站）：只经 Shell API；多盘模式仅作用于指定卷。</summary>
     private void HandleShellAction(CleanCategory category, CleanOptions options, AuditLogger audit,
         ref int deleted, ref int filesDone, ref long bytesDone)
     {
@@ -312,7 +312,10 @@ public sealed class ShellCleaner : ICleaner
         {
             return;
         }
-        foreach (var drive in GetFixedDriveRoots())
+        var volumes = string.IsNullOrEmpty(category.ShellActionVolumeRoot)
+            ? GetFixedDriveRoots()
+            : new[] { category.ShellActionVolumeRoot };
+        foreach (var drive in volumes)
         {
             var before = RecycleBin.Query(drive);
             if (before.ItemCount <= 0)

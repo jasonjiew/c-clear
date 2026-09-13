@@ -21,7 +21,9 @@ public sealed record CleanCategory(
     bool IsShellAction = false,
     /// <summary>官方 CLI 指令（存在时清理器优先执行 CLI 而非逐文件删除）。</summary>
     string? CliCommand = null,
-    string? CliArgs = null);
+    string? CliArgs = null,
+    /// <summary>Shell 动作的卷范围（V3 多盘：非 null 时仅作用于该卷，如 "D:\"）。</summary>
+    string? ShellActionVolumeRoot = null);
 
 /// <summary>体检产出的清理计划（契约见 PROJECT_PLAN 第 5 节）。</summary>
 public sealed record CleanPlan(IReadOnlyList<CleanCategory> Categories, long TotalEstimatedBytes)

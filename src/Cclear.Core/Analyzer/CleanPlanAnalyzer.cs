@@ -32,11 +32,23 @@ public sealed class CleanPlanAnalyzer
     /// <summary>排除目录（来自设置）：传入每次规则扫描，命中的子树整体跳过。</summary>
     public IReadOnlyList<string>? ExcludePaths { get; set; }
 
+    /// <summary>
+    /// 目标盘根（如 "D:\"，V3 多盘）：设置后体检只面向该盘——
+    /// 用户变量类规则跳过、系统盘硬编码路径改写到目标盘、回收站仅查询该卷、CLI 规则跳过；
+    /// null 或系统盘 = 默认全量体检。
+    /// </summary>
+    public string? TargetDriveRoot { get; set; }
+
     public async Task<CleanPlan> BuildPlanAsync(IReadOnlyList<CleanupRule> rules,
         IProgress<CleanAnalysisProgress>? progress, CancellationToken ct)
     {
         var categories = new List<CleanCategory>();
         bool isAdmin = SystemCheck.IsAdministrator();
+        var targetRoot = TargetDriveRoot is null || MultiDriveRules.IsSystemDrive(TargetDriveRoot)
+            ? null
+            : MultiDriveRules.NormalizeRoot(TargetDriveRoot);
+        var effectiveRules = BuildEffectiveRules(rules, targetRoot);
+        rules = effectiveRules;
 
         for (int i = 0; i < rules.Count; i++)
         {
@@ -60,7 +72,7 @@ public sealed class CleanPlanAnalyzer
 
             try
             {
-                CleanCategory? category = rule.ShellAction ? BuildShellActionCategory(rule)
+                CleanCategory? category = rule.ShellAction ? BuildShellActionCategory(rule, targetRoot)
                     : rule.ReportOnly ? BuildReportOnlyCategory(rule)
                     : await BuildFileCategoryAsync(rule, ct);
                 if (category is null)
@@ -81,14 +93,48 @@ public sealed class CleanPlanAnalyzer
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // 单规则失败不拖垮整体体检
+                System.Diagnostics.Debug.WriteLine($"[rule-failed] {rule.Id}: {ex.GetType().Name}: {ex.Message}");
+                if (Environment.GetEnvironmentVariable("CCLEAR_DEBUG_RULES") == "1")
+                {
+                    Console.Error.WriteLine($"[rule-failed] {rule.Id}: {ex.GetType().Name}: {ex.Message}");
+                }
             }
         }
 
         progress?.Report(new CleanAnalysisProgress("", rules.Count, rules.Count));
         return new CleanPlan(categories, categories.Sum(c => c.EstimatedBytes));
+    }
+
+    /// <summary>多盘模式（targetRoot 非 null）下构建目标盘有效的规则集。</summary>
+    private static List<CleanupRule> BuildEffectiveRules(IReadOnlyList<CleanupRule> rules, string? targetRoot)
+    {
+        if (targetRoot is null)
+        {
+            return [.. rules];
+        }
+        var list = new List<CleanupRule>();
+        foreach (var rule in rules)
+        {
+            if (rule.ShellAction)
+            {
+                list.Add(rule); // 回收站：执行层按目标卷过滤
+                continue;
+            }
+            if (rule.Cli is not null || rule.Paths.Length == 0)
+            {
+                continue; // CLI 是机器级动作；无路径规则不适用于非系统盘
+            }
+            var rewritten = MultiDriveRules.RewritePaths(rule.Paths, targetRoot);
+            if (rewritten.Length > 0)
+            {
+                list.Add(rule with { Paths = rewritten });
+            }
+        }
+        list.AddRange(MultiDriveRules.ForDrive(targetRoot));
+        return list;
     }
 
     /// <summary>普通规则：展开根目录 → 扫描 → leaf/include/exclude/年龄/黑名单过滤 → CleanItem 列表。</summary>
@@ -133,14 +179,20 @@ public sealed class CleanPlanAnalyzer
             rule.Cli?.Args);
     }
 
-    /// <summary>shellAction 规则（清空回收站）：经 SHQueryRecycleBin 报告每卷合计。</summary>
-    private CleanCategory? BuildShellActionCategory(CleanupRule rule)
+    /// <summary>shellAction 规则（清空回收站）：经 SHQueryRecycleBin 报告每卷合计；targetRoot 非 null 时仅该卷。</summary>
+    private CleanCategory? BuildShellActionCategory(CleanupRule rule, string? targetRoot = null)
     {
         long bytes = 0;
         long items = 0;
-        foreach (var drive in DriveInfo.GetDrives()
-                     .Where(d => d.DriveType == DriveType.Fixed && d.IsReady)
-                     .Select(d => d.RootDirectory.FullName))
+        var drives = DriveInfo.GetDrives()
+            .Where(d => d.DriveType == DriveType.Fixed && d.IsReady)
+            .Select(d => d.RootDirectory.FullName);
+        if (targetRoot is not null)
+        {
+            var normalized = targetRoot.TrimEnd('\\');
+            drives = drives.Where(d => string.Equals(d.TrimEnd('\\'), normalized, StringComparison.OrdinalIgnoreCase));
+        }
+        foreach (var drive in drives)
         {
             var info = RecycleBin.Query(drive);
             bytes += info.SizeBytes;
@@ -152,7 +204,7 @@ public sealed class CleanPlanAnalyzer
         }
         return new CleanCategory(rule.Id, rule.Name, rule.Level, bytes,
             (int)Math.Min(int.MaxValue, items), Array.Empty<CleanItem>(), BuildExplanation(rule),
-            rule.PreconditionProcesses, IsShellAction: true);
+            rule.PreconditionProcesses, IsShellAction: true, ShellActionVolumeRoot: targetRoot);
     }
 
     private void CollectMatching(FileTree tree, int dirIndex, int rootIndex, RuleRoot root,
@@ -226,7 +278,8 @@ public sealed class CleanPlanAnalyzer
         return new CleanItem(path, node.SizeBytes, lastWrite);
     }
 
-    /// <summary>reportOnly 规则：整棵子树只报告总量（windows-old / windows-logs 等）。</summary>
+    /// <summary>reportOnly 规则：整棵子树只报告总量（windows-old / windows-logs 等）；
+    /// 叶子模式（如 D:\found.*）仅统计 BaseDir 下匹配的直接子项，绝不报告整个盘根。</summary>
     private CleanCategory? BuildReportOnlyCategory(CleanupRule rule)
     {
         long total = 0;
@@ -235,8 +288,29 @@ public sealed class CleanPlanAnalyzer
         {
             var scan = _scanner.ScanAsync(new ScanRequest(root.BaseDir), null, CancellationToken.None)
                 .GetAwaiter().GetResult();
-            total += scan.Tree.GetSize(scan.Tree.RootIndex);
-            files += scan.Tree.GetFileCount(scan.Tree.RootIndex);
+            if (root.LeafPattern is null)
+            {
+                total += scan.Tree.GetSize(scan.Tree.RootIndex);
+                files += scan.Tree.GetFileCount(scan.Tree.RootIndex);
+            }
+            else
+            {
+                var node = scan.Tree.GetNode(scan.Tree.RootIndex);
+                if (node.Children is null)
+                {
+                    continue;
+                }
+                foreach (var child in node.Children)
+                {
+                    var childNode = scan.Tree.GetNode(child);
+                    if (!GlobMatcher.IsMatch(root.LeafPattern, childNode.Name))
+                    {
+                        continue;
+                    }
+                    total += scan.Tree.GetSize(child);
+                    files += scan.Tree.GetFileCount(child);
+                }
+            }
         }
         if (total == 0)
         {

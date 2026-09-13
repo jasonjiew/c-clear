@@ -6,11 +6,12 @@ using System.Text.Json;
 
 namespace Cclear.Core.History;
 
-public sealed record CleanHistoryEntry(DateTime TimeUtc, string RuleId, long Bytes, int Files);
+/// <summary>单条清理历史（V3 P3 起带盘符；旧数据无 drive 字段 → 反序列化为 null，按系统盘 C 处理）。</summary>
+public sealed record CleanHistoryEntry(DateTime TimeUtc, string RuleId, long Bytes, int Files, string? Drive = null);
 
 /// <summary>
 /// 清理历史（V2 F2）：每次清理按规则追加一行 JSONL 到 %APPDATA%\C-Clear\history.jsonl。
-/// 读取时容忍损坏行（跳过），供总览/设置页绘制 30 天趋势。
+/// 读取时容忍损坏行（跳过），供总览/设置页绘制 30 天趋势；V3 支持按盘过滤。
 /// </summary>
 public static class CleanHistoryStore
 {
@@ -69,12 +70,17 @@ public static class CleanHistoryStore
     }
 
     /// <summary>按本地日期聚合最近 days 天的趋势（不足的天补 0；todayLocal 供测试注入）。</summary>
+    /// <param name="drive">盘符过滤（V3）：null=全部；"C" 等盘符=仅该盘（旧数据无盘符按 C 归属）。</param>
     public static IReadOnlyList<TrendPoint> BuildDailyTrend(
-        IReadOnlyList<CleanHistoryEntry> entries, int days, DateOnly todayLocal)
+        IReadOnlyList<CleanHistoryEntry> entries, int days, DateOnly todayLocal, string? drive = null)
     {
         var byDay = new Dictionary<DateOnly, (long Bytes, int Files)>();
         foreach (var entry in entries)
         {
+            if (!MatchesDrive(entry, drive))
+            {
+                continue;
+            }
             var date = DateOnly.FromDateTime(entry.TimeUtc.ToLocalTime());
             byDay.TryGetValue(date, out var current);
             byDay[date] = (current.Bytes + Math.Max(0, entry.Bytes), current.Files + Math.Max(0, entry.Files));
@@ -87,6 +93,17 @@ public static class CleanHistoryStore
             result.Add(new TrendPoint(date, point.Bytes, point.Files));
         }
         return result;
+    }
+
+    /// <summary>旧数据（Drive=null）归属系统盘 C。</summary>
+    private static bool MatchesDrive(CleanHistoryEntry entry, string? drive)
+    {
+        if (drive is null)
+        {
+            return true;
+        }
+        var entryDrive = string.IsNullOrWhiteSpace(entry.Drive) ? "C" : entry.Drive;
+        return string.Equals(entryDrive, drive, StringComparison.OrdinalIgnoreCase);
     }
 }
 

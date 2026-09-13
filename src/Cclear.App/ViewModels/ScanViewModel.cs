@@ -29,12 +29,33 @@ public partial class ScanViewModel : ObservableObject
     public ScanViewModel(IScanner scanner)
     {
         _scanner = scanner;
+        // 默认扫描位置 = 上次选择的磁盘（设置持久化）
+        var driveRoot = Cclear.Core.Win32.DriveCatalog.TryGetRoot(Services.SettingsStore.Instance.SelectedDrive)
+                        ?? @"C:\";
+        _rootPath = driveRoot;
+        _selectedDriveIndex = Math.Max(0, Drives.ToList().FindIndex(d =>
+            string.Equals(d.Root, driveRoot, StringComparison.OrdinalIgnoreCase)));
     }
 
     public string Title => "空间分析";
 
     [ObservableProperty]
     private string _rootPath = @"C:\";
+
+    /// <summary>盘选择下拉（V3 多盘）：选中即把扫描位置切到该盘根。</summary>
+    public IReadOnlyList<Cclear.Core.Win32.DriveOption> Drives { get; } =
+        Cclear.Core.Win32.DriveCatalog.GetFixedDrives();
+
+    [ObservableProperty]
+    private int _selectedDriveIndex;
+
+    partial void OnSelectedDriveIndexChanged(int value)
+    {
+        if (value >= 0 && value < Drives.Count)
+        {
+            RootPath = Drives[value].Root;
+        }
+    }
 
     [ObservableProperty]
     private bool _isScanning;

@@ -36,6 +36,9 @@ public sealed class AppSettings
     /// <summary>自动清理计划：小时（0–23，本地时间，分钟固定为 0）。</summary>
     public int AutoCleanHour { get; set; } = 10;
 
+    /// <summary>选中的磁盘盘符（如 "C"，V3 多盘支持；空/无效回退系统盘）。</summary>
+    public string SelectedDrive { get; set; } = "C";
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "C-Clear", "settings.json");

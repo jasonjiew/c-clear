@@ -45,7 +45,7 @@ public static class AuditLogReader
         return result;
     }
 
-    /// <summary>把一次清理的审计日志按规则汇总为历史条目（只统计成功删除的条目）。</summary>
+    /// <summary>把一次清理的审计日志按规则汇总为历史条目（只统计成功删除的条目；V3 按盘符分组）。</summary>
     public static IReadOnlyList<CleanHistoryEntry> SummarizeAsHistory(string auditLogPath, DateTime utcNow)
     {
         var deleted = ReadEntries(auditLogPath)
@@ -53,12 +53,24 @@ public static class AuditLogReader
                         || string.Equals(e.Result, "recycled", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(e.Result, "recycle-bin-emptied", StringComparison.OrdinalIgnoreCase));
         return deleted
-            .GroupBy(e => e.RuleId, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(e => (RuleId: e.RuleId, Drive: DriveOf(e.Path)))
             .Select(g => new CleanHistoryEntry(
                 utcNow,
-                g.Key,
+                g.Key.RuleId,
                 g.Sum(e => Math.Max(0, e.SizeBytes)),
-                g.Count()))
+                g.Count(),
+                g.Key.Drive))
             .ToList();
+    }
+
+    /// <summary>从删除路径推导盘符（如 "D"）；推导失败记 null（读取端按 C 兼容）。</summary>
+    private static string? DriveOf(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+        var root = System.IO.Path.GetPathRoot(path);
+        return root is { Length: >= 2 } && root[1] == ':' ? root[..1].ToUpperInvariant() : null;
     }
 }

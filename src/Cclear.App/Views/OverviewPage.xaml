@@ -9,9 +9,12 @@
 
             <!--  标题与磁盘概况  -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="C 盘空间" FontSize="26" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding DriveTitle}" FontSize="26" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding DriveDetail}" Margin="14,2,0,0"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                <ComboBox ItemsSource="{Binding Drives}" SelectedIndex="{Binding SelectedDriveIndex}"
+                          DisplayMemberPath="DisplayText" MinWidth="190" Margin="18,0,0,0" MinHeight="34"
+                          VerticalAlignment="Center" />
             </StackPanel>
 
             <!--  第一行：健康分 / 磁盘环形图 / 快速操作  -->
@@ -22,7 +25,7 @@
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="HeartPulse24" Margin="0,0,8,0"
                                            Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
-                            <TextBlock Text="C 盘健康分" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding HealthScoreTitle}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <TextBlock Text="{Binding HealthScoreText}" FontSize="52" FontWeight="Bold" VerticalAlignment="Center"

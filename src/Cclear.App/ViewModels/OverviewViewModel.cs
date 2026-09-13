@@ -28,12 +28,50 @@ public sealed partial class OverviewViewModel : ObservableObject
 
     public string Title => "总览";
 
+    /// <summary>可选磁盘（V3 多盘支持，持久化到设置）。</summary>
+    public IReadOnlyList<DriveOption> Drives { get; } = DriveCatalog.GetFixedDrives();
+
+    [ObservableProperty]
+    private int _selectedDriveIndex;
+
     public OverviewViewModel(Action<CleanPlan> onPlanReady)
     {
         _onPlanReady = onPlanReady;
         // LiveCharts 画刷不走 DynamicResource，主题切换时原地重刷
         Services.ThemeService.ThemeChanged += TrendChart.ApplyTheme;
+        // 恢复上次的磁盘选择（非法回退系统盘）
+        var stored = Cclear.App.Services.SettingsStore.Instance.SelectedDrive;
+        _selectedDriveIndex = Math.Max(0, Drives.ToList().FindIndex(d =>
+            string.Equals(d.Letter, stored, StringComparison.OrdinalIgnoreCase)));
         Refresh();
+    }
+
+    /// <summary>当前选中盘符（"C" 等）。</summary>
+    public string SelectedDriveLetter =>
+        SelectedDriveIndex >= 0 && SelectedDriveIndex < Drives.Count ? Drives[SelectedDriveIndex].Letter : "C";
+
+    /// <summary>当前选中盘根（"C:\"）；系统盘返回 null（体检走默认全量规则）。</summary>
+    public string? TargetDriveRoot =>
+        string.Equals(SelectedDriveLetter, DriveCatalog.SystemDriveLetter, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : SelectedDriveLetter + ":\\";
+
+    /// <summary>标题（随盘选择变化）。</summary>
+    public string DriveTitle => SelectedDriveLetter + " 盘空间";
+
+    public string HealthScoreTitle => SelectedDriveLetter + " 盘健康分";
+
+    partial void OnSelectedDriveIndexChanged(int value)
+    {
+        if (value < 0 || value >= Drives.Count)
+        {
+            return;
+        }
+        OnPropertyChanged(nameof(DriveTitle));
+        OnPropertyChanged(nameof(HealthScoreTitle));
+        Cclear.App.Services.SettingsStore.Instance.SelectedDrive = Drives[value].Letter;
+        Cclear.App.Services.SettingsStore.Save();
+        RefreshDashboard();
     }
 
     [ObservableProperty]
@@ -118,10 +156,11 @@ public sealed partial class OverviewViewModel : ObservableObject
     /// <summary>刷新磁盘信息 + 清理趋势（导航到本页与启动时调用）。</summary>
     public void RefreshDashboard()
     {
-        var info = VolumeInformation.Query(@"C:\");
+        var driveRoot = SelectedDriveLetter + ":\\";
+        var info = VolumeInformation.Query(driveRoot);
         if (info is null)
         {
-            DriveDetail = "无法读取 C 盘信息";
+            DriveDetail = $"无法读取 {SelectedDriveLetter} 盘信息";
             return;
         }
         _usedBytes = info.UsedBytes;
@@ -131,7 +170,7 @@ public sealed partial class OverviewViewModel : ObservableObject
         TotalBytesText = ByteSizeFormatter.Format(info.TotalBytes);
         UsedBytesText = ByteSizeFormatter.Format(info.UsedBytes);
         FreeBytesText = ByteSizeFormatter.Format(info.FreeBytes);
-        DriveDetail = $"C 盘已用 {UsedBytesText} / 共 {TotalBytesText}，剩余 {FreeBytesText}";
+        DriveDetail = $"{SelectedDriveLetter} 盘已用 {UsedBytesText} / 共 {TotalBytesText}，剩余 {FreeBytesText}";
         UpdateLastCleanText();
         LoadTrend();
         _ = LoadCloudStatsAsync();
@@ -157,14 +196,15 @@ public sealed partial class OverviewViewModel : ObservableObject
         }
     }
 
-    /// <summary>读取清理历史并聚合 30 天趋势（F2；P1 升级为 LiveCharts）。</summary>
+    /// <summary>读取清理历史并聚合 30 天趋势（F2；P1 升级为 LiveCharts；P3 按盘过滤）。</summary>
     private void LoadTrend()
     {
         IReadOnlyList<TrendPoint> trend;
         try
         {
             var entries = CleanHistoryStore.Read();
-            trend = CleanHistoryStore.BuildDailyTrend(entries, 30, DateOnly.FromDateTime(DateTime.Now));
+            trend = CleanHistoryStore.BuildDailyTrend(
+                entries, 30, DateOnly.FromDateTime(DateTime.Now), SelectedDriveLetter);
         }
         catch (Exception)
         {
@@ -185,16 +225,17 @@ public sealed partial class OverviewViewModel : ObservableObject
     private async Task HealthCheckAsync()
     {
         IsBusy = true;
-        StatusText = "正在体检…";
+        StatusText = $"正在体检 {SelectedDriveLetter} 盘…";
         try
         {
             var rulesSource = RulesResolver.LoadActive();
             var rules = rulesSource.Rules;
             _analyzer.ExcludePaths = Cclear.App.Services.SettingsStore.Instance.NormalizedExclusions();
+            _analyzer.TargetDriveRoot = TargetDriveRoot;
             var progress = new Progress<CleanAnalysisProgress>(p =>
                 StatusText = $"体检中（{p.RulesDone}/{p.RulesTotal}）：{p.CurrentRule}");
             var plan = await _analyzer.BuildPlanAsync(rules, progress, CancellationToken.None);
-            StatusText = $"体检完成（{rulesSource.Source}）：{plan.Categories.Count} 类，预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}";
+            StatusText = $"{SelectedDriveLetter} 盘体检完成（{rulesSource.Source}）：{plan.Categories.Count} 类，预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}";
             UpdateHealthScore(plan);
             _onPlanReady(plan);
         }
@@ -212,12 +253,13 @@ public sealed partial class OverviewViewModel : ObservableObject
     private async Task DeepScanAsync()
     {
         IsBusy = true;
-        StatusText = "正在扫描全 C 盘（大文件与类型分析）…";
+        var driveRoot = SelectedDriveLetter + ":\\";
+        StatusText = $"正在扫描全 {SelectedDriveLetter} 盘（大文件与类型分析）…";
         try
         {
             var progress = new Progress<ScanProgress>(p =>
                 StatusText = $"分析中：{ByteSizeFormatter.Format(p.BytesSeen)} / {p.FilesScanned:N0} 个文件");
-            var result = await _scanner.ScanAsync(new ScanRequest(@"C:\", Cclear.App.Services.SettingsStore.Instance.NormalizedExclusions()), progress, CancellationToken.None);
+            var result = await _scanner.ScanAsync(new ScanRequest(driveRoot, Cclear.App.Services.SettingsStore.Instance.NormalizedExclusions()), progress, CancellationToken.None);
 
             LargeFiles.Clear();
             foreach (var f in SpaceAnalysis.FindLargeFiles(result.Tree, SpaceAnalysis.DefaultLargeFileThresholdBytes, 50))

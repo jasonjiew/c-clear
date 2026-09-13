@@ -48,6 +48,22 @@ public static class AutoCleanRunner
             var categories = plan.Categories
                 .Where(c => c.Level == SafetyLevel.Safe && !c.IsShellAction && c.Items.Count > 0)
                 .ToList();
+
+            // V3 多盘：选定非系统盘时，额外补充该盘的 Safe 规则（如根目录 Temp）；
+            // 系统盘的 Safe 规则始终保留（免费核心永不缩水）
+            var driveRoot = Win32.DriveCatalog.TryGetRoot(settings.SelectedDrive);
+            if (driveRoot is not null && !Analyzer.MultiDriveRules.IsSystemDrive(driveRoot))
+            {
+                var driveAnalyzer = new CleanPlanAnalyzer
+                {
+                    ExcludePaths = settings.NormalizedExclusions(),
+                    TargetDriveRoot = driveRoot,
+                };
+                var drivePlan = await driveAnalyzer.BuildPlanAsync(rules, null, CancellationToken.None);
+                categories.AddRange(drivePlan.Categories
+                    .Where(c => c.Level == SafetyLevel.Safe && !c.IsShellAction && c.Items.Count > 0));
+            }
+
             if (categories.Count == 0)
             {
                 return 0;

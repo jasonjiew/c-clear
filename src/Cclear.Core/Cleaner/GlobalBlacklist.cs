@@ -35,6 +35,9 @@ public static class GlobalBlacklist
 
     private static readonly Lazy<string[]> UserFoldersLazy = new(ResolveUserFolders, LazyThreadSafetyMode.ExecutionAndPublication);
 
+    /// <summary>测试注入点（生产代码不得使用）：覆盖用户受保护目录解析结果。</summary>
+    internal static Func<IReadOnlyList<string>>? UserFoldersProviderForTests { get; set; }
+
     public static bool IsProtected(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -69,7 +72,7 @@ public static class GlobalBlacklist
         }
 
         // 用户受保护目录（桌面/文档/图片/视频/下载/音乐）
-        foreach (var folder in UserFoldersLazy.Value)
+        foreach (var folder in UserFolders())
         {
             if (display.Equals(folder, StringComparison.OrdinalIgnoreCase)
                 || display.StartsWith(folder + "\\", StringComparison.OrdinalIgnoreCase))
@@ -80,8 +83,18 @@ public static class GlobalBlacklist
         return false;
     }
 
+    /// <summary>测试注入优先；生产走 Lazy 缓存（多盘 Users 枚举开销一次性）。</summary>
+    private static string[] UserFolders() =>
+        UserFoldersProviderForTests is not null
+            ? UserFoldersProviderForTests().ToArray()
+            : UserFoldersLazy.Value;
+
     private static string[] ResolveUserFolders()
     {
+        if (UserFoldersProviderForTests is not null)
+        {
+            return UserFoldersProviderForTests().ToArray();
+        }
         var list = new List<string>
         {
             Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
@@ -95,6 +108,46 @@ public static class GlobalBlacklist
         {
             list.Add(Path.Combine(profile, "Downloads"));
         }
+        // 多盘适配（V3 P3）：其他固定盘上可能存在库重定向或辅助用户目录，同样受保护
+        list.AddRange(EnumeratePerDriveUserFolders());
         return list.Where(f => !string.IsNullOrEmpty(f)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    /// <summary>枚举每个固定盘 {drive}\Users\*\ 下真实存在的受保护子目录（桌面/文档/图片/视频/音乐/下载）。</summary>
+    private static IEnumerable<string> EnumeratePerDriveUserFolders()
+    {
+        var protectedNames = new[] { "Desktop", "Documents", "Pictures", "Videos", "Music", "Downloads" };
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            if (drive.DriveType != DriveType.Fixed || !drive.IsReady)
+            {
+                continue;
+            }
+            var usersRoot = Path.Combine(drive.RootDirectory.FullName, "Users");
+            if (!Directory.Exists(usersRoot))
+            {
+                continue;
+            }
+            string[] userDirs;
+            try
+            {
+                userDirs = Directory.GetDirectories(usersRoot);
+            }
+            catch (Exception)
+            {
+                continue; // 不可读的 Users 目录：跳过
+            }
+            foreach (var userDir in userDirs)
+            {
+                foreach (var name in protectedNames)
+                {
+                    var candidate = Path.Combine(userDir, name);
+                    if (Directory.Exists(candidate))
+                    {
+                        yield return candidate;
+                    }
+                }
+            }
+        }
     }
 }
