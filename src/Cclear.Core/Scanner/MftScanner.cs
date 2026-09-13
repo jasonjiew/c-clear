@@ -242,7 +242,7 @@ public sealed class MftScanner : IScanner
         public const uint OPEN_EXISTING = 3;
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern SafeHandle CreateFileW(
+        public static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFileW(
             string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes,
             uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
 

@@ -279,3 +279,4 @@ public sealed record CleanResult(long FreedBytes, int DeletedFiles, int SkippedF
 - 2026-09-13 发布：GitHub 仓库 https://github.com/wangjie0721666-web/c-clear ；CI 与 Release（v0.1.0 标签）流水线均成功，正式单文件发布物 https://github.com/wangjie0721666-web/c-clear/releases/download/v0.1.0/Cclear.App.exe ；winget 提交 PR https://github.com/microsoft/winget-pkgs/pull/433970 （manifest validate 通过；CLA 签署需仓库所有者在网页完成）。MFT 管理员实测尝试：schtasks /rl highest 被拒；UAC RunAs 两次均被自动拒绝/超时（需用户在弹窗点"是"）。复现命令（管理员环境 10 秒完成）：
   `dotnet publish C:\Users\18098\AppData\Local\Temp\clear-perf\clear-perf.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o bench && bench\clear-perf.exe`
   （Program.cs 已是 MftScanner 基准，结果写入 %TEMP%\mft-bench-result.txt）
+- 2026-09-13 V2 立项：MftScanner 首次提权运行发现 CreateFileW 抽象 SafeHandle 封送错误（MarshalDirectiveException），修复为 SafeFileHandle（真机管理员环境验证路径已打通，待用户批准 UAC 完成计时）。UI 现代化与商业化升级计划另立交接文档：**docs/UI与商业化升级计划.md**（后续会话从该文档执行）。
