@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Cclear.Core.Rules;
 using Xunit;
 
@@ -8,6 +9,17 @@ namespace Cclear.Core.Tests;
 
 public sealed class RulePathExpanderTests
 {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint GetLongPathNameW(string lpszShortPath, System.Text.StringBuilder lpszLongPath, uint cchBuffer);
+
+    /// <summary>解析 8.3 短名（CI 环境 TEMP 常为 RUNNER~1 形式）。</summary>
+    private static string LongPath(string path)
+    {
+        var sb = new System.Text.StringBuilder(1024);
+        var len = GetLongPathNameW(path, sb, (uint)sb.Capacity);
+        return len > 0 && len < sb.Capacity ? sb.ToString(0, (int)len) : path;
+    }
+
     [Fact]
     public void CurrentUserTemp_ExpandsToRealTemp()
     {
@@ -15,7 +27,7 @@ public sealed class RulePathExpanderTests
         var roots = RulePathExpander.Expand(rule);
         var root = Assert.Single(roots);
         var expected = Path.GetTempPath().TrimEnd('\\');
-        Assert.Equal(expected, root.BaseDir.TrimEnd('\\'));
+        Assert.Equal(LongPath(expected), LongPath(root.BaseDir.TrimEnd('\\')));
         Assert.Null(root.LeafPattern);
     }
 
