@@ -76,20 +76,14 @@ public sealed partial class OverviewViewModel : ObservableObject
         try
         {
             var rules = RulePackLoader.LoadEmbedded();
-            System.IO.File.AppendAllText(@"D:\ai_develop_project_space\c-clear\uidebug.log",
-                $"[{DateTime.Now:HH:mm:ss}] rules={rules.Count}\n");
             var progress = new Progress<CleanAnalysisProgress>(p =>
                 StatusText = $"体检中（{p.RulesDone}/{p.RulesTotal}）：{p.CurrentRule}");
             var plan = await _analyzer.BuildPlanAsync(rules, progress, CancellationToken.None);
-            System.IO.File.AppendAllText(@"D:\ai_develop_project_space\c-clear\uidebug.log",
-                $"[{DateTime.Now:HH:mm:ss}] plan={plan.Categories.Count} total={plan.TotalEstimatedBytes}\n");
             StatusText = $"体检完成：{plan.Categories.Count} 类，预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}";
             _onPlanReady(plan);
         }
         catch (Exception ex)
         {
-            System.IO.File.AppendAllText(@"D:\ai_develop_project_space\c-clear\uidebug.log",
-                $"[{DateTime.Now:HH:mm:ss}] EXC {ex}\n");
             StatusText = "体检失败：" + ex.Message;
         }
         finally

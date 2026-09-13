@@ -42,3 +42,4 @@ BenchmarkDotNet.Artifacts/
 # OS
 Thumbs.db
 desktop.ini
+uidebug.log
