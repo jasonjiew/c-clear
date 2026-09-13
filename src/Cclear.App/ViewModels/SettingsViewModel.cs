@@ -27,6 +27,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             Rules.Add(new RuleRow(rule));
         }
+        LoadHistory();
     }
 
     public ObservableCollection<string> ExcludedDirs { get; } = new();
@@ -49,6 +50,41 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string[] ThemeOptions { get; } = { ThemeService.System, ThemeService.Light, ThemeService.Dark };
 
     public string AppVersion => "v" + (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
+
+    /// <summary>最近 30 天每日清理字节数（F2 清理历史）。</summary>
+    public System.Collections.ObjectModel.ObservableCollection<double> HistoryTrendValues { get; } =
+        new(System.Linq.Enumerable.Repeat(0.0, 30));
+
+    [ObservableProperty]
+    private string _historySummaryText = "暂无清理记录";
+
+    /// <summary>读取清理历史并聚合 30 天趋势。</summary>
+    public void LoadHistory()
+    {
+        try
+        {
+            var entries = Cclear.Core.History.CleanHistoryStore.Read();
+            var trend = Cclear.Core.History.CleanHistoryStore.BuildDailyTrend(
+                entries, 30, DateOnly.FromDateTime(DateTime.Now));
+            HistoryTrendValues.Clear();
+            foreach (var point in trend)
+            {
+                HistoryTrendValues.Add(point.Bytes);
+            }
+            var total = trend.Sum(p => p.Bytes);
+            var activeDays = trend.Count(p => p.Bytes > 0);
+            HistorySummaryText = activeDays == 0
+                ? "暂无清理记录"
+                : $"近 30 天清理 {Cclear.Core.ByteSizeFormatter.Format(total)}，累计 {entries.Count} 条规则记录";
+        }
+        catch (Exception)
+        {
+            HistorySummaryText = "读取清理历史失败";
+        }
+    }
+
+    [RelayCommand]
+    private void RefreshHistory() => LoadHistory();
 
     partial void OnSelectedThemeChanged(string value)
     {

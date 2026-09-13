@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using Cclear.Core;
 using Cclear.Core.Analysis;
 using Cclear.Core.Analyzer;
+using Cclear.Core.History;
 using Cclear.Core.Rules;
 using Cclear.Core.Scanner;
 using Cclear.Core.Win32;
@@ -73,6 +74,15 @@ public sealed partial class OverviewViewModel : ObservableObject
     [ObservableProperty]
     private string _lastCleanText = "尚未记录清理";
 
+    [ObservableProperty]
+    private string _trendSummaryText = "暂无清理记录";
+
+    [ObservableProperty]
+    private bool _hasTrendData;
+
+    /// <summary>最近 30 天每日释放字节数（0 补齐）。</summary>
+    public ObservableCollection<double> TrendValues { get; } = new(Enumerable.Repeat(0.0, 30));
+
     public ObservableCollection<LargeFileRow> LargeFiles { get; } = new();
 
     public ObservableCollection<ExtensionRow> Extensions { get; } = new();
@@ -88,7 +98,10 @@ public sealed partial class OverviewViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanRun))]
-    private void Refresh()
+    private void Refresh() => RefreshDashboard();
+
+    /// <summary>刷新磁盘信息 + 清理趋势（导航到本页与启动时调用）。</summary>
+    public void RefreshDashboard()
     {
         var info = VolumeInformation.Query(@"C:\");
         if (info is null)
@@ -105,6 +118,33 @@ public sealed partial class OverviewViewModel : ObservableObject
         FreeBytesText = ByteSizeFormatter.Format(info.FreeBytes);
         DriveDetail = $"C 盘已用 {UsedBytesText} / 共 {TotalBytesText}，剩余 {FreeBytesText}";
         UpdateLastCleanText();
+        LoadTrend();
+    }
+
+    /// <summary>读取清理历史并聚合 30 天趋势（F2）。</summary>
+    private void LoadTrend()
+    {
+        IReadOnlyList<TrendPoint> trend;
+        try
+        {
+            var entries = CleanHistoryStore.Read();
+            trend = CleanHistoryStore.BuildDailyTrend(entries, 30, DateOnly.FromDateTime(DateTime.Now));
+        }
+        catch (Exception)
+        {
+            trend = Array.Empty<TrendPoint>();
+        }
+        TrendValues.Clear();
+        foreach (var point in trend)
+        {
+            TrendValues.Add(point.Bytes);
+        }
+        var total = trend.Sum(p => p.Bytes);
+        var activeDays = trend.Count(p => p.Bytes > 0);
+        HasTrendData = activeDays > 0;
+        TrendSummaryText = activeDays == 0
+            ? "暂无清理记录"
+            : $"近 30 天共清理 {ByteSizeFormatter.Format(total)}，{activeDays} 天有记录";
     }
 
     [RelayCommand(CanExecute = nameof(CanRun))]

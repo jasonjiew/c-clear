@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -88,6 +89,7 @@ public sealed partial class CleanListViewModel : ObservableObject
             {
                 Services.SettingsStore.Instance.LastCleanAtUtc = DateTime.UtcNow;
                 Services.SettingsStore.Save();
+                RecordHistory();
             }
             UiServices.ToastSuccess("清理完成",
                 $"实际释放 {ByteSizeFormatter.Format(result.FreedBytes)}，删除 {result.DeletedFiles:N0} 项");
@@ -106,6 +108,25 @@ public sealed partial class CleanListViewModel : ObservableObject
         finally
         {
             IsCleaning = false;
+        }
+    }
+
+    /// <summary>把本次清理按规则写入历史（解析审计日志，只统计成功删除的条目）。</summary>
+    private void RecordHistory()
+    {
+        try
+        {
+            var auditPath = (_cleaner as ShellCleaner)?.LastAuditLogPath;
+            if (string.IsNullOrEmpty(auditPath) || !File.Exists(auditPath))
+            {
+                return;
+            }
+            var entries = Cclear.Core.History.AuditLogReader.SummarizeAsHistory(auditPath, DateTime.UtcNow);
+            Cclear.Core.History.CleanHistoryStore.Append(entries);
+        }
+        catch (Exception)
+        {
+            // 历史记录失败不影响清理结果
         }
     }
 }

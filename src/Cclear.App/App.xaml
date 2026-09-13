@@ -13,6 +13,7 @@
             <converters:SafetyLevelToBrushConverter x:Key="SafetyLevelToBrush" />
             <converters:HealthScoreToBrushConverter x:Key="HealthScoreToBrush" />
             <converters:EmptyStateVisibilityConverter x:Key="EmptyStateVisibility" />
+            <converters:BoolToInvisibilityConverter x:Key="BoolToInvisibility" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

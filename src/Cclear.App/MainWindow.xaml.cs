@@ -46,5 +46,10 @@ public partial class MainWindow : FluentWindow
                 _ => page.DataContext,
             };
         }
+        // 每次回到总览页刷新磁盘信息与清理趋势
+        if (args is NavigatedEventArgs { Page: OverviewPage })
+        {
+            _vm.Overview.RefreshDashboard();
+        }
     }
 }

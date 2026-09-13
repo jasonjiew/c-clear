@@ -85,23 +85,32 @@
                 </ui:Card>
             </UniformGrid>
 
-            <!--  第二行：清理趋势（F2 实装）  -->
+            <!--  第二行：清理趋势（F2）  -->
             <ui:Card Margin="0,14,0,0" MinHeight="150">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <ui:SymbolIcon Symbol="History24" Margin="0,0,8,0"
-                                       Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
-                        <TextBlock Text="清理趋势（最近 30 天）" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
-                            Margin="0,12,0,0" Padding="16" MinHeight="86">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <ui:SymbolIcon Symbol="ChartMultiple24" FontSize="30"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
-                            <TextBlock Text="完成首次清理后，这里将展示最近 30 天的释放量趋势。"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,0"
-                                       HorizontalAlignment="Center" />
+                    <Grid Margin="0,0,0,4">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="History24" Margin="0,0,8,0"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <TextBlock Text="清理趋势（最近 30 天）" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
+                        <TextBlock Text="{Binding TrendSummaryText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
+                            Margin="0,10,0,0" Padding="6" MinHeight="92">
+                        <Grid>
+                            <controls:TrendChart Values="{Binding TrendValues}" MinHeight="88"
+                                                 LineBrush="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <StackPanel Visibility="{Binding HasTrendData, Converter={StaticResource BoolToInvisibility}}"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <ui:SymbolIcon Symbol="ChartMultiple24" FontSize="30"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="完成首次清理后，这里将展示最近 30 天的释放量趋势。"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,0"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 </StackPanel>
             </ui:Card>
