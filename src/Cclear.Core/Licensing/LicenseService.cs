@@ -17,11 +17,27 @@ public static class LicenseService
 {
     public const string ProductId = "c-clear-pro";
 
-    /// <summary>Pro 功能标识（本期仅占位展示，不设墙）。</summary>
+    /// <summary>Pro 功能标识（V3 P4-P8 起 HasFeature 生效；免费核心永不缩水）。</summary>
     public const string FeatureAutoClean = "autoclean";
     public const string FeatureCloudRulesFast = "cloud-rules-fast";
+    public const string FeatureSmartAdvisor = "smart-advisor";
+    public const string FeatureLeftoverScan = "leftover-scan";
+    public const string FeatureTrendForecast = "trend-forecast";
+    public const string FeatureAdvancedTriggers = "advanced-triggers";
+    public const string FeatureDownloadDuplicates = "download-duplicates";
 
-    public static string[] ProFeatures { get; } = { FeatureAutoClean, FeatureCloudRulesFast };
+    public static string[] ProFeatures { get; } =
+    {
+        FeatureAutoClean, FeatureCloudRulesFast, FeatureSmartAdvisor, FeatureLeftoverScan,
+        FeatureTrendForecast, FeatureAdvancedTriggers, FeatureDownloadDuplicates,
+    };
+
+    /// <summary>当前许可证是否启用指定功能（未装/无效/过期 = false）。</summary>
+    public static bool HasFeature(string featureId)
+    {
+        var license = GetCurrent();
+        return license is not null && license.HasFeature(featureId);
+    }
 
     /// <summary>
     /// Ed25519 公钥（raw 32 字节，hex）。开发期密钥对由 tools/LicenseTool keygen 生成；

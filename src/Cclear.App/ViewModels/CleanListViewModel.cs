@@ -35,6 +35,39 @@ public sealed partial class CleanListViewModel : ObservableObject
     [ObservableProperty]
     private bool _isCleaning;
 
+    // ---------- 智能清理建议（V3 P4，Pro 底座：先放后收，未激活也可用） ----------
+
+    private CleanPlan? _lastPlan;
+    private Cclear.Core.Advisor.AdvisorRecommendation? _recommendation;
+
+    /// <summary>智能建议横幅文案（空 = 不显示横幅）。</summary>
+    [ObservableProperty]
+    private string _advisorBannerText = "";
+
+    /// <summary>当前许可证是否已激活智能建议功能（未激活显示 Pro 徽标但功能可用）。</summary>
+    public bool AdvisorIsPro =>
+        Cclear.Core.Licensing.LicenseService.HasFeature(Cclear.Core.Licensing.LicenseService.FeatureSmartAdvisor);
+
+    [RelayCommand]
+    private void ApplyRecommendations()
+    {
+        if (_recommendation is null)
+        {
+            return;
+        }
+        foreach (var vm in Categories)
+        {
+            if (_recommendation.RuleIds.Contains(vm.Category.RuleId, StringComparer.OrdinalIgnoreCase))
+            {
+                vm.IsChecked = true;
+            }
+        }
+        SummaryText = $"已按智能建议勾选 {Categories.Count(c => c.IsChecked)} 类，预计释放 "
+            + ByteSizeFormatter.Format(_recommendation.EstimatedBytes) + "。确认后点击下方“执行清理”。";
+        OnPropertyChanged(nameof(CanClean));
+        ExecuteCleanCommand.NotifyCanExecuteChanged();
+    }
+
     public ObservableCollection<CleanCategoryViewModel> Categories { get; } = new();
 
     public bool CanClean => !IsCleaning && Categories.Any(c => c.IsChecked && (c.Category.IsShellAction || c.Category.Items.Count > 0));
@@ -47,6 +80,7 @@ public sealed partial class CleanListViewModel : ObservableObject
 
     public void LoadPlan(CleanPlan plan)
     {
+        _lastPlan = plan;
         Categories.Clear();
         foreach (var category in plan.Categories.OrderByDescending(c => c.EstimatedBytes))
         {
@@ -55,6 +89,8 @@ public sealed partial class CleanListViewModel : ObservableObject
         SummaryText = Categories.Count == 0
             ? "没有发现可清理的内容。"
             : $"共 {Categories.Count} 类可清理，预计可释放 {ByteSizeFormatter.Format(plan.Categories.Sum(c => c.EstimatedBytes))}。删除默认进入回收站，可随时还原。";
+        _recommendation = Cclear.Core.Advisor.CleanAdvisor.Recommend(plan, DateTime.UtcNow);
+        AdvisorBannerText = _recommendation?.ReasonText ?? "";
         OnPropertyChanged(nameof(CanClean));
         ExecuteCleanCommand.NotifyCanExecuteChanged();
     }
