@@ -40,6 +40,10 @@ public partial class ScanViewModel : ObservableObject
     [ObservableProperty]
     private string _elapsedText = "";
 
+    /// <summary>实时吞吐（MB/s 与 文件/s，U3 流式进度）。</summary>
+    [ObservableProperty]
+    private string _throughputText = "";
+
     [ObservableProperty]
     private int _deniedCount;
 
@@ -79,6 +83,10 @@ public partial class ScanViewModel : ObservableObject
         {
             FilesScanned = p.FilesScanned;
             BytesSeen = p.BytesSeen;
+            var elapsed = _stopwatch.Elapsed.TotalSeconds;
+            ThroughputText = elapsed > 0.5
+                ? $"{ByteSizeFormatter.Format((long)(p.BytesSeen / elapsed))}/s · {p.FilesScanned / elapsed:N0} 文件/s"
+                : "";
             StatusText = $"正在扫描：{ByteSizeFormatter.Format(p.BytesSeen)} / {p.FilesScanned:N0} 个文件 / {TruncateDir(p.CurrentDir)}";
         });
 
@@ -103,6 +111,7 @@ public partial class ScanViewModel : ObservableObject
         {
             _stopwatch.Stop();
             ElapsedText = $"用时 {_stopwatch.Elapsed:hh\\:mm\\:ss}";
+            ThroughputText = "";
             IsScanning = false;
             _cts.Dispose();
             _cts = null;

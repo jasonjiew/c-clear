@@ -12,6 +12,7 @@
             </ResourceDictionary.MergedDictionaries>
             <converters:SafetyLevelToBrushConverter x:Key="SafetyLevelToBrush" />
             <converters:HealthScoreToBrushConverter x:Key="HealthScoreToBrush" />
+            <converters:EmptyStateVisibilityConverter x:Key="EmptyStateVisibility" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

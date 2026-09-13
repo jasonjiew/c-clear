@@ -48,6 +48,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string[] ThemeOptions { get; } = { ThemeService.System, ThemeService.Light, ThemeService.Dark };
 
+    public string AppVersion => "v" + (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
+
     partial void OnSelectedThemeChanged(string value)
     {
         if (value == ThemeService.StoredTheme)

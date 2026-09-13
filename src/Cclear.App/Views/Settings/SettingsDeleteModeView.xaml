@@ -1,0 +1,20 @@
+<UserControl x:Class="Cclear.App.Views.Settings.SettingsDeleteModeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel Margin="8" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Text="删除方式" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="默认删除进回收站，可随时还原。永久删除模式仅建议在确认不需要还原时开启。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,12" />
+        <ui:Card Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox IsChecked="{Binding PermanentDelete}" VerticalAlignment="Center" MinWidth="24" />
+                <TextBlock Text="永久删除模式（默认关闭：删除进回收站可还原；开启后清理不进回收站且无法还原）"
+                           Margin="8,0,0,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                           TextWrapping="Wrap" MaxWidth="600" VerticalAlignment="Center" />
+            </StackPanel>
+        </ui:Card>
+        <TextBlock Text="每次执行清理前都会弹出清单确认；永久删除与清空回收站还有额外二次确认。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

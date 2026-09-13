@@ -1,0 +1,29 @@
+<UserControl x:Class="Cclear.App.Views.Settings.SettingsExclusionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel Margin="8" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Text="排除目录" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="扫描与体检将跳过这些目录（子树整体排除）。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,12" />
+        <StackPanel Orientation="Horizontal">
+            <ui:TextBox Width="480" MinHeight="34" PlaceholderText="输入要排除的目录完整路径"
+                        Text="{Binding NewExcludedDir, UpdateSourceTrigger=PropertyChanged}" />
+            <ui:Button Content="添加" Icon="{ui:SymbolIcon Add24}" Command="{Binding AddExcludedDirCommand}"
+                       Margin="8,0,0,0" MinWidth="88" Appearance="Primary" />
+        </StackPanel>
+        <ListBox ItemsSource="{Binding ExcludedDirs}" Height="200" Margin="0,12">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel>
+                        <ui:Button DockPanel.Dock="Right" Content="移除" Icon="{ui:SymbolIcon Delete24}"
+                                   Command="{Binding DataContext.RemoveExcludedDirCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                   CommandParameter="{Binding}" MinWidth="72" Margin="0,2" />
+                        <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Margin="0,6,0,0" />
+    </StackPanel>
+</UserControl>

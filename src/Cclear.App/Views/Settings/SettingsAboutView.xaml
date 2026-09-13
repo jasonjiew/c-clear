@@ -1,0 +1,23 @@
+<UserControl x:Class="Cclear.App.Views.Settings.SettingsAboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel Margin="8" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Text="关于" FontSize="18" FontWeight="SemiBold" />
+        <ui:Card Margin="0,12,0,0">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="ShieldTask24" Margin="0,0,8,0"
+                                   Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
+                    <TextBlock Text="C-Clear — 开源透明的 C 盘清理工具" FontSize="15" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock Text="{Binding AppVersion, StringFormat=版本：{0}}" Margin="0,10,0,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="安全设计：硬编码黑名单保护用户文档（桌面/文档/图片/视频/下载）永不被删；默认删除进回收站可还原；被占用文件 0 强删；每次清理写入 JSONL 审计日志。"
+                           Margin="0,6,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                <TextBlock Text="开源地址：https://github.com/wangjie0721666-web/c-clear（MIT License）"
+                           Margin="0,6,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </ui:Card>
+    </StackPanel>
+</UserControl>

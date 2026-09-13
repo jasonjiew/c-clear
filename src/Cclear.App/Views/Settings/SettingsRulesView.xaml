@@ -1,0 +1,28 @@
+<UserControl x:Class="Cclear.App.Views.Settings.SettingsRulesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel Margin="8">
+        <TextBlock Text="规则库" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock Text="内置规则随应用分发、只读。在线规则包更新即将推出（来源 GitHub Releases，SHA256 校验 + HTTPS）。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,12" TextWrapping="Wrap" />
+        <ListView ItemsSource="{Binding Rules}" MinHeight="380" MaxHeight="520"
+                  VirtualizingStackPanel.IsVirtualizing="True">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="ID" Width="150" DisplayMemberBinding="{Binding Id}" />
+                    <GridViewColumn Header="名称" Width="180" DisplayMemberBinding="{Binding Name}" />
+                    <GridViewColumn Header="级别" Width="60" DisplayMemberBinding="{Binding Level}" />
+                    <GridViewColumn Header="路径 / 命令" Width="380">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Paths}" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Paths}" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </StackPanel>
+</UserControl>
