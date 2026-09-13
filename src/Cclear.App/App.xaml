@@ -11,6 +11,7 @@
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
             <converters:SafetyLevelToBrushConverter x:Key="SafetyLevelToBrush" />
+            <converters:HealthScoreToBrushConverter x:Key="HealthScoreToBrush" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

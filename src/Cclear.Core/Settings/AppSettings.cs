@@ -24,6 +24,9 @@ public sealed class AppSettings
     /// <summary>界面主题：Light / Dark / System（跟随系统，默认）。</summary>
     public string Theme { get; set; } = "System";
 
+    /// <summary>最近一次成功清理的时间（UTC，用于健康分与趋势）。</summary>
+    public DateTime? LastCleanAtUtc { get; set; }
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "C-Clear", "settings.json");

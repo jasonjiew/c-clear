@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,12 +14,14 @@ using Cclear.Core.Win32;
 
 namespace Cclear.App.ViewModels;
 
-/// <summary>总览页：C 盘仪表 + 一键体检 + 深度分析（大文件/类型统计）。</summary>
+/// <summary>总览页：健康分 + 磁盘环形图 + 一键体检 + 深度分析（大文件/类型统计）。</summary>
 public sealed partial class OverviewViewModel : ObservableObject
 {
     private readonly Action<CleanPlan> _onPlanReady;
     private readonly CleanPlanAnalyzer _analyzer = new();
     private readonly ManagedTreeScanner _scanner = new();
+    private long _usedBytes;
+    private long _totalBytes;
 
     public string Title => "总览";
 
@@ -35,10 +38,40 @@ public sealed partial class OverviewViewModel : ObservableObject
     private double _usedPercent;
 
     [ObservableProperty]
+    private string _usedPercentText = "0%";
+
+    [ObservableProperty]
+    private string _totalBytesText = "—";
+
+    [ObservableProperty]
+    private string _usedBytesText = "—";
+
+    [ObservableProperty]
+    private string _freeBytesText = "—";
+
+    [ObservableProperty]
     private bool _isBusy;
 
     [ObservableProperty]
     private string _statusText = "点击“一键体检”查找可安全清理的内容。";
+
+    [ObservableProperty]
+    private string _healthScoreText = "—";
+
+    [ObservableProperty]
+    private string _healthScoreLevel = "尚未体检";
+
+    [ObservableProperty]
+    private string _healthScoreSummary = "完成一次体检后，这里会给出 0–100 的健康分。";
+
+    [ObservableProperty]
+    private double _healthScoreValue = -1;
+
+    [ObservableProperty]
+    private string _planSummaryText = "尚未体检";
+
+    [ObservableProperty]
+    private string _lastCleanText = "尚未记录清理";
 
     public ObservableCollection<LargeFileRow> LargeFiles { get; } = new();
 
@@ -63,9 +96,15 @@ public sealed partial class OverviewViewModel : ObservableObject
             DriveDetail = "无法读取 C 盘信息";
             return;
         }
+        _usedBytes = info.UsedBytes;
+        _totalBytes = info.TotalBytes;
         UsedPercent = info.TotalBytes == 0 ? 0 : info.UsedBytes * 100.0 / info.TotalBytes;
-        DriveDetail = $"C 盘已用 {ByteSizeFormatter.Format(info.UsedBytes)} / 共 {ByteSizeFormatter.Format(info.TotalBytes)}"
-            + $"，剩余 {ByteSizeFormatter.Format(info.FreeBytes)}";
+        UsedPercentText = $"{UsedPercent:F0}%";
+        TotalBytesText = ByteSizeFormatter.Format(info.TotalBytes);
+        UsedBytesText = ByteSizeFormatter.Format(info.UsedBytes);
+        FreeBytesText = ByteSizeFormatter.Format(info.FreeBytes);
+        DriveDetail = $"C 盘已用 {UsedBytesText} / 共 {TotalBytesText}，剩余 {FreeBytesText}";
+        UpdateLastCleanText();
     }
 
     [RelayCommand(CanExecute = nameof(CanRun))]
@@ -81,6 +120,7 @@ public sealed partial class OverviewViewModel : ObservableObject
                 StatusText = $"体检中（{p.RulesDone}/{p.RulesTotal}）：{p.CurrentRule}");
             var plan = await _analyzer.BuildPlanAsync(rules, progress, CancellationToken.None);
             StatusText = $"体检完成：{plan.Categories.Count} 类，预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}";
+            UpdateHealthScore(plan);
             _onPlanReady(plan);
         }
         catch (Exception ex)
@@ -124,6 +164,31 @@ public sealed partial class OverviewViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    private void UpdateHealthScore(CleanPlan plan)
+    {
+        var safeBytes = plan.Categories
+            .Where(c => c.Level == SafetyLevel.Safe)
+            .Sum(c => c.EstimatedBytes);
+        var score = HealthScoreCalculator.Calculate(
+            safeBytes, _usedBytes, 0, Cclear.App.Services.SettingsStore.Instance.LastCleanAtUtc);
+        HealthScoreValue = score.Score;
+        HealthScoreText = score.Score.ToString();
+        HealthScoreLevel = score.Level;
+        HealthScoreSummary = score.Summary;
+        PlanSummaryText = plan.Categories.Count == 0
+            ? "没有发现可清理的内容"
+            : $"预计可释放 {ByteSizeFormatter.Format(plan.TotalEstimatedBytes)}"
+              + $"（其中 Safe {ByteSizeFormatter.Format(safeBytes)}）";
+    }
+
+    private void UpdateLastCleanText()
+    {
+        var lastClean = Cclear.App.Services.SettingsStore.Instance.LastCleanAtUtc;
+        LastCleanText = lastClean is null
+            ? "尚未记录清理"
+            : $"上次清理：{lastClean.Value.ToLocalTime():yyyy-MM-dd HH:mm}";
     }
 }
 

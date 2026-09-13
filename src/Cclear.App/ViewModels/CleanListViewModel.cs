@@ -84,6 +84,11 @@ public sealed partial class CleanListViewModel : ObservableObject
                     .GetAwaiter().GetResult());
             _dialogs.ShowResult(result, (_cleaner as ShellCleaner)?.LastAuditLogPath ?? "",
                 selected.Sum(c => c.EstimatedBytes));
+            if (result.DeletedFiles > 0)
+            {
+                Services.SettingsStore.Instance.LastCleanAtUtc = DateTime.UtcNow;
+                Services.SettingsStore.Save();
+            }
             UiServices.ToastSuccess("清理完成",
                 $"实际释放 {ByteSizeFormatter.Format(result.FreedBytes)}，删除 {result.DeletedFiles:N0} 项");
             Categories.Clear();
