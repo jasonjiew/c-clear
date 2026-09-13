@@ -1,0 +1,44 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+# Test results
+[Tt]est[Rr]esult*/
+TestResult.xml
+*.trx
+
+# Publish output
+publish/
+
+# Rider
+.idea/
+*.sln.iml
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# OS
+Thumbs.db
+desktop.ini

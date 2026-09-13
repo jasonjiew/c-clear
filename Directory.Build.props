@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Version>0.1.0</Version>
+    <Authors>C-Clear Contributors</Authors>
+    <Product>C-Clear</Product>
+    <NeutralLanguage>zh-CN</NeutralLanguage>
+  </PropertyGroup>
+</Project>
