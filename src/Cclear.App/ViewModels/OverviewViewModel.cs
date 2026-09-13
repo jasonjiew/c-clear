@@ -80,6 +80,14 @@ public sealed partial class OverviewViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasTrendData;
 
+    // ---------- OneDrive 云占位统计（F5：只统计、绝不触碰） ----------
+
+    [ObservableProperty]
+    private string _cloudStatsText = "正在检查 OneDrive…";
+
+    [ObservableProperty]
+    private bool _hasCloudData;
+
     /// <summary>最近 30 天每日释放字节数（0 补齐）。</summary>
     public ObservableCollection<double> TrendValues { get; } = new(Enumerable.Repeat(0.0, 30));
 
@@ -119,6 +127,27 @@ public sealed partial class OverviewViewModel : ObservableObject
         DriveDetail = $"C 盘已用 {UsedBytesText} / 共 {TotalBytesText}，剩余 {FreeBytesText}";
         UpdateLastCleanText();
         LoadTrend();
+        _ = LoadCloudStatsAsync();
+    }
+
+    /// <summary>后台统计 OneDrive 云占位文件（只读元数据，绝不触发下载）。</summary>
+    private async Task LoadCloudStatsAsync()
+    {
+        try
+        {
+            var stats = await Task.Run(
+                () => Cclear.Core.Cloud.CloudPlaceholderStatistics.ScanAll(CancellationToken.None));
+            HasCloudData = stats is not null;
+            CloudStatsText = stats is null
+                ? "未发现 OneDrive（显示空状态）"
+                : $"占位文件 {stats.PlaceholderFiles:N0} 个 / 逻辑大小 {ByteSizeFormatter.Format(stats.LogicalBytes)}"
+                  + $"（云端按需文件，本工具只统计绝不触碰）";
+        }
+        catch (Exception)
+        {
+            HasCloudData = false;
+            CloudStatsText = "OneDrive 统计失败（不影响清理功能）";
+        }
     }
 
     /// <summary>读取清理历史并聚合 30 天趋势（F2）。</summary>

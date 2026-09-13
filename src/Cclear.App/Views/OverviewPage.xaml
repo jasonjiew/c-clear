@@ -85,35 +85,62 @@
                 </ui:Card>
             </UniformGrid>
 
-            <!--  第二行：清理趋势（F2）  -->
-            <ui:Card Margin="0,14,0,0" MinHeight="150">
-                <StackPanel>
-                    <Grid Margin="0,0,0,4">
-                        <StackPanel Orientation="Horizontal">
-                            <ui:SymbolIcon Symbol="History24" Margin="0,0,8,0"
-                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <TextBlock Text="清理趋势（最近 30 天）" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding TrendSummaryText}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    </Grid>
-                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
-                            Margin="0,10,0,0" Padding="6" MinHeight="92">
-                        <Grid>
-                            <controls:TrendChart Values="{Binding TrendValues}" MinHeight="88"
-                                                 LineBrush="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <StackPanel Visibility="{Binding HasTrendData, Converter={StaticResource BoolToInvisibility}}"
-                                        VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <ui:SymbolIcon Symbol="ChartMultiple24" FontSize="30"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
-                                <TextBlock Text="完成首次清理后，这里将展示最近 30 天的释放量趋势。"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,0"
-                                           HorizontalAlignment="Center" />
+            <!--  第二行：清理趋势（F2） + OneDrive 云占位（F5）  -->
+            <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ui:Card Grid.Column="0" Margin="0,0,8,0" MinHeight="150">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,4">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="History24" Margin="0,0,8,0"
+                                               Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <TextBlock Text="清理趋势（最近 30 天）" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
                             </StackPanel>
+                            <TextBlock Text="{Binding TrendSummaryText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </Grid>
-                    </Border>
-                </StackPanel>
-            </ui:Card>
+                        <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
+                                Margin="0,10,0,0" Padding="6" MinHeight="92">
+                            <Grid>
+                                <controls:TrendChart Values="{Binding TrendValues}" MinHeight="88"
+                                                     LineBrush="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <StackPanel Visibility="{Binding HasTrendData, Converter={StaticResource BoolToInvisibility}}"
+                                            VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <ui:SymbolIcon Symbol="ChartMultiple24" FontSize="30"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                                    <TextBlock Text="完成首次清理后，这里将展示最近 30 天的释放量趋势。"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,0"
+                                               HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Grid.Column="1" Margin="8,0,0,0" MinHeight="150">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="Cloud24" Margin="0,0,8,0"
+                                           Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <TextBlock Text="OneDrive 云占位" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border Background="{DynamicResource ControlFillColorDefaultBrush}" CornerRadius="8"
+                                Margin="0,10,0,0" Padding="14" MinHeight="92">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <ui:SymbolIcon Symbol="Cloud24" FontSize="26" HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Text="{Binding CloudStatsText}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           TextAlignment="Center" HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" MaxWidth="300" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ui:Card>
+            </Grid>
 
             <!--  大文件 Top 50  -->
             <ui:Card Margin="0,14,0,0">
