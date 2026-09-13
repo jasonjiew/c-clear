@@ -26,6 +26,8 @@ public partial class ScanViewModel : ObservableObject
         _scanner = scanner;
     }
 
+    public string Title => "空间分析";
+
     [ObservableProperty]
     private string _rootPath = @"C:\";
 

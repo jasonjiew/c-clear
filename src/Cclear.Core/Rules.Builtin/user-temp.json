@@ -1,0 +1,12 @@
+{
+  "id": "user-temp",
+  "name": "用户临时文件",
+  "level": "Safe",
+  "paths": ["%TEMP%"],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 3,
+  "requiresAdmin": false,
+  "preconditionProcesses": [],
+  "explanation": "应用程序留下的临时文件；仅清理超过 72 小时未修改的文件，正在使用的文件会被自动跳过"
+}

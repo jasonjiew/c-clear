@@ -1,0 +1,16 @@
+{
+  "id": "crash-dumps",
+  "name": "应用崩溃转储",
+  "level": "Safe",
+  "paths": [
+    "%LOCALAPPDATA%\\CrashDumps",
+    "C:\\Windows\\MEMORY.DMP",
+    "C:\\Windows\\Minidump\\*"
+  ],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": false,
+  "preconditionProcesses": [],
+  "explanation": "应用崩溃时生成的调试转储文件，一般用户几乎不会用到；系统级转储（C:\\Windows 下）需以管理员身份运行本程序"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "d3dscache",
+  "name": "DirectX 着色器缓存",
+  "level": "Safe",
+  "paths": ["%LOCALAPPDATA%\\D3DSCache"],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": false,
+  "preconditionProcesses": [],
+  "explanation": "DirectX 自动管理的着色器缓存，删除后首次运行游戏时会自动重建（可能短暂变慢）"
+}

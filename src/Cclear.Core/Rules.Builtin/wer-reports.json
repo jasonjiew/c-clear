@@ -1,0 +1,15 @@
+{
+  "id": "wer-reports",
+  "name": "Windows 错误报告队列",
+  "level": "Safe",
+  "paths": [
+    "C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue",
+    "C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive"
+  ],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": false,
+  "preconditionProcesses": [],
+  "explanation": "Windows 错误报告（WER）排队/归档的报告包，问题上报完成后即可清理"
+}

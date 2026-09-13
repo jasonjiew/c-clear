@@ -1,0 +1,13 @@
+{
+  "id": "delivery-opt",
+  "name": "传递优化缓存（仅报告）",
+  "level": "Caution",
+  "paths": ["C:\\Windows\\ServiceProfiles\\NetworkService\\AppData\\Local\\Microsoft\\Windows\\DeliveryOptimization\\Cache"],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": true,
+  "preconditionProcesses": [],
+  "reportOnly": true,
+  "explanation": "P2P 更新分发缓存，需要 SYSTEM 权限；本程序不直接删除，请在 PowerShell 中运行 Delete-DeliveryOptimizationCache -Force，或使用 系统设置 > 存储 > 临时文件"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "win-update",
+  "name": "Windows 更新下载缓存",
+  "level": "Caution",
+  "paths": ["C:\\Windows\\SoftwareDistribution\\Download"],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": true,
+  "preconditionProcesses": [],
+  "explanation": "已下载的 Windows 更新安装包；清理时需要临时停止 Windows 更新服务，任一步失败会放弃并建议使用系统磁盘清理"
+}

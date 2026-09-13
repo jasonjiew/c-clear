@@ -1,0 +1,13 @@
+{
+  "id": "windows-logs",
+  "name": "Windows 系统日志（仅报告）",
+  "level": "Manual",
+  "paths": ["C:\\Windows\\Logs"],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": true,
+  "preconditionProcesses": [],
+  "reportOnly": true,
+  "explanation": "系统组件日志（CBS、DISM 等），排查系统问题时有用；本程序只报告大小，建议保留"
+}

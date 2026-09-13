@@ -1,0 +1,13 @@
+{
+  "id": "windows-old",
+  "name": "旧系统 Windows.old（仅报告）",
+  "level": "Manual",
+  "paths": ["C:\\Windows.old"],
+  "expandAllUsers": false,
+  "include": ["*"],
+  "minAgeDays": 0,
+  "requiresAdmin": true,
+  "preconditionProcesses": [],
+  "reportOnly": true,
+  "explanation": "系统升级后的旧系统备份，可用于回退；请使用系统磁盘清理（清理系统文件）卸载，手动删除可能导致无法回退"
+}
