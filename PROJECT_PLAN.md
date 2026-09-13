@@ -276,3 +276,6 @@ public sealed record CleanResult(long FreedBytes, int DeletedFiles, int SkippedF
 - 2026-09-13 v1：初版（调研 + 计划合并，环境已就绪）
 - 2026-09-13 W3：删除引擎由 IFileOperation 改为 SHFileOperationW(FOF_ALLOWUNDO)。原因：本机实测 IFileOperation::DeleteItem 对进程外调用方一律挂起（多探针验证：明文/加密文件、有无消息泵环境均复现；CLSID 与注册表核对无误）。SHFileOperationW 同为 Shell API、同样进回收站可还原，"默认回收站"红线不变；SHQueryRecycleBin/SHEmptyRecycleBin 维持原案。批内失败转单文件重试以保证逐文件归因。
 - 2026-09-13 W6：MftScanner POC 按 FSCTL_ENUM_USN_DATA 落地（USN_RECORD 解析 + ParentFileReference 建树 + 管理员检测）。限制：USN_RECORD 不含文件大小（精确大小需直读 $MFT FILE 记录，超出 POC 范围），故 SizeBytes=0 且不接入默认 UI，默认扫描仍为 ManagedTreeScanner；"<30 秒"验收需管理员 + NTFS 卷环境实测（当前执行环境无提升权限，已留集成测试入口）。官方 CLI 优先在 W4 以 CliRunner 实现：命令在 PATH 时执行（npm cache clean --force 等），缺失/失败回退目录删除。
+- 2026-09-13 发布：GitHub 仓库 https://github.com/wangjie0721666-web/c-clear ；CI 与 Release（v0.1.0 标签）流水线均成功，正式单文件发布物 https://github.com/wangjie0721666-web/c-clear/releases/download/v0.1.0/Cclear.App.exe ；winget 提交 PR https://github.com/microsoft/winget-pkgs/pull/433970 （manifest validate 通过；CLA 签署需仓库所有者在网页完成）。MFT 管理员实测尝试：schtasks /rl highest 被拒；UAC RunAs 两次均被自动拒绝/超时（需用户在弹窗点"是"）。复现命令（管理员环境 10 秒完成）：
+  `dotnet publish C:\Users\18098\AppData\Local\Temp\clear-perf\clear-perf.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o bench && bench\clear-perf.exe`
+  （Program.cs 已是 MftScanner 基准，结果写入 %TEMP%\mft-bench-result.txt）
