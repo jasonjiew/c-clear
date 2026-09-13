@@ -19,6 +19,9 @@
             <ui:NavigationViewItem Content="删除方式" Icon="{ui:SymbolIcon Delete24}"
                                    TargetPageType="{x:Type settings:SettingsDeleteModeView}"
                                    NavigationCacheMode="Enabled" />
+            <ui:NavigationViewItem Content="自动清理" Icon="{ui:SymbolIcon Timer24}"
+                                   TargetPageType="{x:Type settings:SettingsAutoCleanView}"
+                                   NavigationCacheMode="Enabled" />
             <ui:NavigationViewItem Content="规则库" Icon="{ui:SymbolIcon Book24}"
                                    TargetPageType="{x:Type settings:SettingsRulesView}"
                                    NavigationCacheMode="Enabled" />

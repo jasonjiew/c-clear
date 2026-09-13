@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Windows;
 using Cclear.App.Services;
 using Wpf.Ui.Controls;
@@ -6,9 +8,16 @@ namespace Cclear.App;
 
 public partial class App : Application
 {
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Any(a => string.Equals(a, "--autoclean", StringComparison.OrdinalIgnoreCase)))
+        {
+            // 计划任务无头模式（F3）：仅 Safe 规则、回收站模式、写审计与历史，跑完即退出
+            var exitCode = await Cclear.Core.AutoClean.AutoCleanRunner.RunAsync();
+            Shutdown(exitCode);
+            return;
+        }
         var window = new MainWindow();
         MainWindow = window;
         ThemeService.ApplyStoredTheme(window);

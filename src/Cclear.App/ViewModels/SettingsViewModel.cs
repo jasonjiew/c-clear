@@ -30,6 +30,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             Rules.Add(new RuleRow(rule));
         }
         LoadHistory();
+        LoadAutoClean();
     }
 
     private static string BuildRulesPackStatusText()
@@ -111,17 +112,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _checkRulesUpdateOnStartup;
 
-    private bool _suppressRulesTogglePersist;
-
     /// <summary>在线规则包状态：安装路径、版本、来源。</summary>
     public string RulesPackPath => Cclear.Core.Rules.RulesUpdater.InstalledPackPath;
 
     partial void OnCheckRulesUpdateOnStartupChanged(bool value)
     {
-        if (_suppressRulesTogglePersist)
-        {
-            return;
-        }
         SettingsStore.Instance.CheckRulesUpdateOnStartup = value;
         SettingsStore.Save();
         StatusText = value ? "已开启启动时自动检查规则包更新" : "已关闭启动时自动检查（仍可手动检查）";
@@ -175,6 +170,172 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             Rules.Add(new RuleRow(rule));
         }
+    }
+
+    // ---------- 计划任务自动清理（F3） ----------
+
+    public string[] WeekDayOptions { get; } = { "周六", "周日", "周一", "周二", "周三", "周四", "周五" };
+
+    public int[] HourOptions { get; } = { 2, 6, 8, 10, 12, 14, 18, 21, 23 };
+
+    [ObservableProperty]
+    private int _selectedWeekDayIndex;
+
+    [ObservableProperty]
+    private int _selectedHour;
+
+    [ObservableProperty]
+    private bool _autoCleanEnabled;
+
+    [ObservableProperty]
+    private string _autoCleanStatusText = "";
+
+    [ObservableProperty]
+    private string _autoCleanLastRunText = "";
+
+    partial void OnAutoCleanEnabledChanged(bool value)
+    {
+        if (_suppressAutoCleanToggle)
+        {
+            return;
+        }
+        try
+        {
+            if (value)
+            {
+                ApplyScheduleFromSelection();
+                Cclear.Core.AutoClean.AutoCleanScheduler.Register(
+                    MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0, ExecutablePath);
+                AutoCleanStatusText = $"已注册：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理（仅 Safe 规则，进回收站）";
+                UiServices.ToastSuccess("自动清理", "计划任务已注册");
+            }
+            else
+            {
+                Cclear.Core.AutoClean.AutoCleanScheduler.Unregister();
+                AutoCleanStatusText = "已取消自动清理";
+                UiServices.ToastInfo("自动清理", "计划任务已取消");
+            }
+        }
+        catch (Exception ex)
+        {
+            AutoCleanStatusText = "操作失败：" + ex.Message;
+            _suppressAutoCleanToggle = true;
+            AutoCleanEnabled = !value;
+            _suppressAutoCleanToggle = false;
+        }
+        RefreshAutoCleanLastRun();
+    }
+
+    partial void OnSelectedWeekDayIndexChanged(int value) => OnScheduleChanged();
+
+    partial void OnSelectedHourChanged(int value) => OnScheduleChanged();
+
+    private bool _suppressAutoCleanToggle;
+
+    private void OnScheduleChanged()
+    {
+        if (_suppressAutoCleanToggle || !AutoCleanEnabled)
+        {
+            return;
+        }
+        try
+        {
+            ApplyScheduleFromSelection();
+            Cclear.Core.AutoClean.AutoCleanScheduler.Register(
+                MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0, ExecutablePath);
+            AutoCleanStatusText = $"已更新：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理";
+        }
+        catch (Exception ex)
+        {
+            AutoCleanStatusText = "更新计划失败：" + ex.Message;
+        }
+    }
+
+    /// <summary>立即运行一次（经系统计划任务，验证全链路；日志进审计）。</summary>
+    [RelayCommand]
+    private void RunAutoCleanNow()
+    {
+        try
+        {
+            Cclear.Core.AutoClean.AutoCleanScheduler.RunNow();
+            AutoCleanStatusText = "已触发立即运行（后台执行，可在审计日志中查看结果）";
+            UiServices.ToastInfo("自动清理", "已触发，稍后可在日志页查看结果");
+        }
+        catch (Exception ex)
+        {
+            AutoCleanStatusText = "触发失败：" + ex.Message;
+        }
+        RefreshAutoCleanLastRun();
+    }
+
+    [RelayCommand]
+    private void RefreshAutoCleanStatus() => RefreshAutoCleanLastRun();
+
+    /// <summary>应用可执行文件路径（计划任务指向）。</summary>
+    public static string ExecutablePath =>
+        Environment.ProcessPath
+        ?? System.IO.Path.Combine(AppContext.BaseDirectory, "Cclear.App.exe");
+
+    private void ApplyScheduleFromSelection()
+    {
+        SettingsStore.Instance.AutoCleanDayOfWeek = (int)MapWeekDay(SelectedWeekDayIndex);
+        SettingsStore.Instance.AutoCleanHour = SelectedHour;
+        SettingsStore.Save();
+    }
+
+    /// <summary>UI 顺序（周六在前）→ DayOfWeek。</summary>
+    private DayOfWeek MapWeekDay(int uiIndex) => uiIndex switch
+    {
+        0 => DayOfWeek.Saturday,
+        1 => DayOfWeek.Sunday,
+        2 => DayOfWeek.Monday,
+        3 => DayOfWeek.Tuesday,
+        4 => DayOfWeek.Wednesday,
+        5 => DayOfWeek.Thursday,
+        _ => DayOfWeek.Friday,
+    };
+
+    /// <summary>DayOfWeek → UI 顺序。</summary>
+    private static int MapWeekDayIndex(DayOfWeek day) => day switch
+    {
+        DayOfWeek.Saturday => 0,
+        DayOfWeek.Sunday => 1,
+        DayOfWeek.Monday => 2,
+        DayOfWeek.Tuesday => 3,
+        DayOfWeek.Wednesday => 4,
+        DayOfWeek.Thursday => 5,
+        _ => 6,
+    };
+
+    private void RefreshAutoCleanLastRun()
+    {
+        try
+        {
+            var status = Cclear.Core.AutoClean.AutoCleanScheduler.GetStatus();
+            _suppressAutoCleanToggle = true;
+            AutoCleanEnabled = status.Registered;
+            _suppressAutoCleanToggle = false;
+            AutoCleanLastRunText = !status.Registered
+                ? "尚未注册计划任务"
+                : status.LastRunTime is null
+                    ? "已注册（尚未运行过）"
+                    : $"上次运行：{status.LastRunTime:yyyy-MM-dd HH:mm} · {status.Detail}";
+        }
+        catch (Exception ex)
+        {
+            AutoCleanLastRunText = "查询计划任务状态失败：" + ex.Message;
+        }
+    }
+
+    public void LoadAutoClean()
+    {
+        var settings = SettingsStore.Instance;
+        SelectedWeekDayIndex = MapWeekDayIndex((DayOfWeek)Math.Clamp(settings.AutoCleanDayOfWeek, 0, 6));
+        SelectedHour = Math.Clamp(settings.AutoCleanHour, 0, 23);
+        _suppressAutoCleanToggle = true;
+        AutoCleanEnabled = Cclear.Core.AutoClean.AutoCleanScheduler.IsRegistered();
+        _suppressAutoCleanToggle = false;
+        RefreshAutoCleanLastRun();
     }
 
     partial void OnSelectedThemeChanged(string value)

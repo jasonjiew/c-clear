@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// <summary>启动时自动检查在线规则包更新（失败静默使用内置包）。</summary>
     public bool CheckRulesUpdateOnStartup { get; set; } = true;
 
+    /// <summary>自动清理计划：星期（0=周日 … 6=周六），配合 AutoCleanHour 生效。</summary>
+    public int AutoCleanDayOfWeek { get; set; } = 6;
+
+    /// <summary>自动清理计划：小时（0–23，本地时间，分钟固定为 0）。</summary>
+    public int AutoCleanHour { get; set; } = 10;
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "C-Clear", "settings.json");

@@ -1,0 +1,41 @@
+<UserControl x:Class="Cclear.App.Views.Settings.SettingsAutoCleanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <StackPanel Margin="8" MaxWidth="820" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="每周自动清理" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="6" Padding="8,2"
+                    Margin="10,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="PRO 功能位（本期免费开放）" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            </Border>
+        </StackPanel>
+        <TextBlock Text="由 Windows 计划任务到点拉起应用执行一次体检并清理（无常驻后台进程）。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,4" TextWrapping="Wrap" />
+        <TextBlock Text="安全边界：仅执行“安全”级别规则，绝不自动运行“谨慎/手动”与清空回收站；固定进入回收站可还原；排除目录与硬编码黑名单照常生效；每次自动清理都写入审计日志。"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,14" TextWrapping="Wrap" />
+
+        <StackPanel Orientation="Horizontal">
+            <CheckBox Content="启用每周自动清理" IsChecked="{Binding AutoCleanEnabled}" VerticalAlignment="Center" />
+            <ComboBox ItemsSource="{Binding WeekDayOptions}" SelectedIndex="{Binding SelectedWeekDayIndex}"
+                      MinWidth="90" MinHeight="32" Margin="18,0,0,0" />
+            <ComboBox ItemsSource="{Binding HourOptions}" SelectedItem="{Binding SelectedHour}"
+                      MinWidth="90" MinHeight="32" Margin="8,0,0,0" />
+            <TextBlock Text="{Binding SelectedHour, StringFormat=点自动运行}" VerticalAlignment="Center"
+                       Margin="8,0,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+            <ui:Button Content="立即运行一次" Icon="{ui:SymbolIcon Play24}"
+                       Command="{Binding RunAutoCleanNowCommand}" MinWidth="130" MinHeight="34" />
+            <ui:Button Content="刷新状态" Icon="{ui:SymbolIcon ArrowClockwise24}"
+                       Command="{Binding RefreshAutoCleanStatusCommand}" MinWidth="100" MinHeight="34" Margin="8,0,0,0" />
+        </StackPanel>
+
+        <TextBlock Text="{Binding AutoCleanLastRunText}" Margin="0,12,0,0"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        <TextBlock Text="{Binding AutoCleanStatusText}" Margin="0,6,0,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+    </StackPanel>
+</UserControl>
