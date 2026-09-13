@@ -28,7 +28,7 @@
             <ui:NavigationViewItem Content="日志" Icon="{ui:SymbolIcon History24}"
                                    TargetPageType="{x:Type settings:SettingsLogsView}"
                                    NavigationCacheMode="Enabled" />
-            <ui:NavigationViewItem Content="关于" Icon="{ui:SymbolIcon Information24}"
+            <ui:NavigationViewItem Content="关于" Icon="{ui:SymbolIcon Info24}"
                                    TargetPageType="{x:Type settings:SettingsAboutView}"
                                    NavigationCacheMode="Enabled" />
         </ui:NavigationView.MenuItems>

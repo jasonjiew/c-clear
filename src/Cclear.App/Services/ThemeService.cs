@@ -31,14 +31,14 @@ public static class ThemeService
         }
     }
 
-    /// <summary>运行时切换主题并持久化（切换后重新挂接/解除系统监听）。</summary>
-    public static void SetTheme(string theme)
+    /// <summary>运行时切换主题并持久化（切换后重新挂接/解除系统监听）。可指定背景效果（截图巡览用 None 以便离屏渲染）。</summary>
+    public static void SetTheme(string theme, WindowBackdropType backdrop = WindowBackdropType.Mica)
     {
         if (_watchedWindow is not null)
         {
             SystemThemeWatcher.UnWatch(_watchedWindow);
         }
-        ApplyInternal(theme);
+        ApplyInternal(theme, backdrop);
         SettingsStore.Instance.Theme = theme;
         SettingsStore.Save();
         if (theme == System && _watchedWindow is not null)
@@ -47,7 +47,7 @@ public static class ThemeService
         }
     }
 
-    private static void ApplyInternal(string theme)
+    private static void ApplyInternal(string theme, WindowBackdropType backdrop = WindowBackdropType.Mica)
     {
         var appTheme = theme switch
         {
@@ -55,7 +55,7 @@ public static class ThemeService
             Light => ApplicationTheme.Light,
             _ => ToApplicationTheme(ApplicationThemeManager.GetSystemTheme()),
         };
-        ApplicationThemeManager.Apply(appTheme, WindowBackdropType.Mica);
+        ApplicationThemeManager.Apply(appTheme, backdrop);
     }
 
     private static ApplicationTheme ToApplicationTheme(SystemTheme system) => system switch

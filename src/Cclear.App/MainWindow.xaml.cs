@@ -32,6 +32,22 @@ public partial class MainWindow : FluentWindow
         Nav.Navigate(typeof(OverviewPage), _vm.Overview);
     }
 
+    /// <summary>程序化导航到指定页面（供截图巡览等开发工具使用）。</summary>
+    public void NavigateTo(Type pageType)
+    {
+        object? dataContext = pageType.Name switch
+        {
+            nameof(OverviewPage) => _vm.Overview,
+            nameof(SpaceAnalysisPage) => _vm.SpaceAnalysis,
+            nameof(CleanListPage) => _vm.CleanList,
+            nameof(DuplicatesPage) => _vm.Duplicates,
+            nameof(DeepCleanPage) => _vm.DeepClean,
+            nameof(SettingsPage) => _vm.Settings,
+            _ => null,
+        };
+        Nav.Navigate(pageType, dataContext);
+    }
+
     private void OnNavNavigated(NavigationView sender, RoutedEventArgs args)
     {
         if (args is NavigatedEventArgs navigated && navigated.Page is FrameworkElement page)

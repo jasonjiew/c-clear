@@ -27,12 +27,7 @@ public sealed partial class DeepCleanViewModel : ObservableObject
     [ObservableProperty]
     private string _adminStatusText = "";
 
-    partial void OnIsAdminChanged(bool value)
-    {
-        AdminStatusText = value
-            ? "当前以管理员运行，全部深度清理项可用"
-            : "当前非管理员：执行类操作会失败；以管理员身份运行本程序可解锁全部项（右键应用图标 → 以管理员身份运行）";
-    }
+    partial void OnIsAdminChanged(bool value) => RefreshAdminText();
 
     [ObservableProperty]
     private string _hibernationText = "";
@@ -78,6 +73,14 @@ public sealed partial class DeepCleanViewModel : ObservableObject
     {
         IsAdmin = SystemCheck.IsAdministrator();
         RefreshHibernation();
+        RefreshAdminText();
+    }
+
+    private void RefreshAdminText()
+    {
+        AdminStatusText = IsAdmin
+            ? "当前以管理员运行，全部深度清理项可用"
+            : "当前非管理员：执行类操作会失败；以管理员身份运行本程序可解锁全部项（右键应用图标 → 以管理员身份运行）";
     }
 
     private void RefreshHibernation()

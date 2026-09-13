@@ -9,9 +9,19 @@ C-Clear 是一款面向 Windows 10/11 的开源磁盘清理工具，聚焦一个
 
 优先级：**简单 > 稳定 > 安全 > 扫描快**。
 
-## 功能
+## 截图
 
-- **空间分析**：并行扫描目录树（全 C 盘 1.5M 文件约 45 秒 / NVMe），大文件 TopN、扩展名统计、无权限目录汇总
+<!-- V2 Fluent 界面截图（docs/screenshots/），深浅色主题跟随系统 -->
+
+| 总览仪表盘（健康分 + 磁盘环形图） | 深度清理引导 |
+|---|---|
+| ![总览](docs/screenshots/overview-light.png) | ![深度清理](docs/screenshots/deepclean-light.png) |
+
+## 功能（V2）
+
+- **Fluent 界面**：WPF-UI 4.x（Win11 观感、Mica 背景、NavigationView 侧栏导航），浅色 / 深色 / 跟随系统三态主题
+- **总览仪表盘**：C 盘健康分（0–100，综合 Safe 可清理量 / 重复浪费 / 上次清理时间）、磁盘占用环形图、大文件与类型统计
+- **空间分析**：并行扫描目录树（全 C 盘 1.5M 文件约 45 秒 / NVMe），大文件 TopN、扩展名统计、实时吞吐、目录树图标（目录/文件/云占位/联接）
 - **一键体检**：内置规则包自动识别可清理内容，按 安全/谨慎/手动 三级展示"是什么、为什么安全、重建代价"
 - **系统清理**：用户/系统临时文件（>72h）、缩略图缓存、崩溃转储、错误报告、着色器缓存、Windows 更新缓存（自动停/启服务）等
 - **开发缓存专项**：npm / pnpm / yarn / pip / poetry / uv / Gradle / Maven / NuGet / Cargo / HuggingFace / JetBrains / VS Code / Docker 缓存，**官方 CLI 优先**（如 `npm cache clean --force`），CLI 不可用时回退目录删除
@@ -19,20 +29,29 @@ C-Clear 是一款面向 Windows 10/11 的开源磁盘清理工具，聚焦一个
 - **重复文件**：三级漏斗（大小分组 → 首尾 4KB 预哈希 → 全量 SHA-256），默认保留最旧一份
 - **空目录**：自底向上折叠，一次删除整条空目录链
 - **回收站清理**：按卷统计大小，经 Shell API 清空（带二次确认）
+- **清理历史与趋势**：每次清理按规则写入 `history.jsonl`，总览页 30 天释放量趋势图
+- **在线规则包**（实验性）：托管于 GitHub Releases，SHA256 校验 + HTTPS 下载，失败静默回退内置包（每条规则仍受硬编码黑名单约束）
+- **每周自动清理**：Windows 计划任务到点执行"体检 + 仅安全级清理"，进回收站、写审计日志，无常驻后台
+- **深度清理引导**：组件存储分析（DISM）、Windows 更新备份清理（需管理员 + 二次确认）、休眠文件（powercfg）、系统还原点占用——只引导不代删
+- **OneDrive 云占位统计**：只读元数据统计占位文件数与逻辑大小，绝不触发下载
 
 ## 安全设计（不可妥协）
 
-1. **全局黑名单硬编码于清理器**：`Windows\Installer`、`WinSxS`、`Program Files`、用户桌面/文档/图片/视频/下载、OneDrive 同步根、`pagefile.sys` 等——**任何规则 JSON 都无法覆盖**
-2. **默认进回收站**：删除经 Shell API（FOF_ALLOWUNDO），可随时还原；永久删除需在设置中显式开启 + 每次清理二次确认
+1. **全局黑名单硬编码于清理器**：`Windows\Installer`、`WinSxS`、`Program Files`、用户桌面/文档/图片/视频/下载、OneDrive 同步根、`pagefile.sys` 等——**任何规则 JSON 都无法覆盖**（含在线更新的规则包）
+2. **默认进回收站**：删除经 Shell API（FOF_ALLOWUNDO），可随时还原；永久删除需在设置中显式开启 + 每次清理二次确认；自动清理固定回收站模式且只跑安全级规则
 3. **占用预检**：独占打开 + 就地重命名双重测试，被占用文件 0 强删，全部进跳过清单
 4. **junction/symlink 不跟随、不删除**；OneDrive 云占位文件只读元数据、永不触发下载
 5. **全量 JSONL 审计日志**（`%LOCALAPPDATA%\C-Clear\logs\`），每次删除可逐条回查
 6. **释放量报真实值**：按 `GetDiskFreeSpaceEx` 执行前后差值统计（回收站模式显示"移入回收站字节数"，因为空间要清空回收站后才到账）
 7. **扫描永远只读**；清理只操作规则/勾选命中的集合
 
+## 开源与商业化
+
+开源核心**全功能免费**（MIT）。Pro 为可选付费支持项（买断制：每周自动清理 + 云规则推送 + 优先 issue 响应），采用离线 Ed25519 授权码、无联网 DRM、不设功能墙、无推广弹窗——机制说明见 [docs/商业化-授权机制.md](docs/商业化-授权机制.md)。
+
 ## 运行要求
 
-- Windows 10 (1809+) / Windows 11，x64
+- Windows 10 (1809+) / Windows 11，x64（推荐 Windows 11 以获得 Mica/Fluent 完整观感）
 - 无需安装 .NET（单文件自包含发布）
 - 部分系统级清理项（Windows 临时、更新缓存等）需要管理员权限运行；普通权限下会自动跳过并提示
 
@@ -40,26 +59,33 @@ C-Clear 是一款面向 Windows 10/11 的开源磁盘清理工具，聚焦一个
 
 ```bash
 dotnet build                       # 构建
-dotnet test                        # 运行测试（xunit，39+ 用例）
+dotnet test                        # 运行测试（xunit，86 用例）
 dotnet publish src/Cclear.App -c Release -r win-x64 --self-contained \
-  -p:PublishSingleFile=true -o publish    # 单文件发布（约 156MB）
+  -p:PublishSingleFile=true -o publish    # 单文件发布
 ```
 
 CI（`.github/workflows/ci.yml`）：windows-latest 上 build + test。
-Release 工作流（`release.yml`）：推送 `v*` 标签时自动构建并上传单文件 exe。
+Release 工作流（`release.yml`）：推送 `v*` 标签时自动构建并上传单文件 exe 与规则包（`rules-pack-v1.json`）。
 
 ## 项目结构
 
 ```
 src/Cclear.Core/       核心库（无 UI 依赖，全部可单测）
   Scanner/             IScanner + ManagedTreeScanner（+W6 MftScanner POC）
-  Rules/               规则模型、JSON 规则包加载、路径展开、glob
+  Rules/               规则模型、JSON 规则包加载、路径展开、glob、在线规则包（版本+SHA256）
   Rules.Builtin/       内置规则包（28 条，嵌入资源，支持外部目录热加载）
   Analyzer/            体检引擎：规则 × 文件系统 → CleanPlan
   Cleaner/             清理执行器 + 全局黑名单 + 审计日志 + CLI 执行器
-  Duplicates/          重复文件三级漏斗 + 空目录折叠
+  History/             清理历史（history.jsonl）+ 审计回读 + 30 天趋势聚合
+  AutoClean/           计划任务自动清理（Task Scheduler COM + 无头模式）
+  DeepClean/           深度清理引导（DISM / powercfg / vssadmin）
+  Cloud/               OneDrive 云占位统计（只读元数据）
+  Licensing/           Ed25519（RFC 8032）+ 离线许可证验证
   Win32/               卷信息 / 回收站 / 服务控制 / 权限检测
-src/Cclear.App/        WPF 前端（MVVM，CommunityToolkit）
+src/Cclear.App/        WPF 前端（MVVM，CommunityToolkit + WPF-UI 4.3 Fluent）
+tools/RulesPackTool/   规则包生成工具（内置规则 → rules-pack-vN.json + SHA256）
+tools/LicenseTool/     授权码工具（keygen / sign / verify）
+rules-pack/            规则包产物（随 Release 分发，社区规则接受 PR）
 tests/Cclear.Core.Tests/  xunit 测试（红线回归都在这里）
 ```
 
@@ -67,6 +93,7 @@ tests/Cclear.Core.Tests/  xunit 测试（红线回归都在这里）
 
 - **MftScanner（POC）**：`FSCTL_ENUM_USN_DATA` 直读 USN_RECORD 建树，需管理员。POC 限制：USN_RECORD 不含文件大小（SizeBytes=0），因此不接入默认 UI；需要精确大小请使用默认的 API 枚举扫描器。
 - **删除引擎**：使用 `SHFileOperationW(FOF_ALLOWUNDO)`（计划中的 IFileOperation 在部分机器对进程外调用方挂起，按"安全>简单"改道，见 PROJECT_PLAN 变更记录）。
+- **UI 框架**：WPF-UI (lepoco) 4.3.0（MIT）。新依赖理由见提交记录与 V2 计划 §1.1。
 - 清理策略测试矩阵：Win10 21H2/22H2、Win11 23H2/24H2 × 管理员/标准用户（建议 VM/沙盒验证）。
 
 ## License

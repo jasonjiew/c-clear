@@ -22,6 +22,15 @@ public partial class App : Application
         MainWindow = window;
         ThemeService.ApplyStoredTheme(window);
         window.Show();
+
+        var tourIndex = Array.FindIndex(e.Args, a => string.Equals(a, "--screenshot-tour", StringComparison.OrdinalIgnoreCase));
+        if (tourIndex >= 0 && e.Args.Length > tourIndex + 1)
+        {
+            // 开发工具：无人值守页面截图（README 文档与 UI 回归用）
+            await ScreenshotTour.RunAsync(window, e.Args[tourIndex + 1]);
+            Shutdown();
+            return;
+        }
         _ = CheckRulesUpdateOnStartupAsync();
     }
 
