@@ -31,6 +31,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         LoadHistory();
         LoadAutoClean();
+        _licenseStatusText = "";
+        LoadLicenseStatus();
     }
 
     private static string BuildRulesPackStatusText()
@@ -270,6 +272,66 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [RelayCommand]
     private void RefreshAutoCleanStatus() => RefreshAutoCleanLastRun();
+
+    // ---------- 许可证（F6：技术底座，本期不设功能墙） ----------
+
+    [ObservableProperty]
+    private string _licenseStatusText;
+
+    /// <summary>当前许可证（未装/无效为 null）。</summary>
+    public Cclear.Core.Licensing.LicenseInfo? CurrentLicense => Cclear.Core.Licensing.LicenseService.GetCurrent();
+
+    public string LicensePath => Cclear.Core.Licensing.LicenseService.LicensePath;
+
+    public void LoadLicenseStatus()
+    {
+        var result = Cclear.Core.Licensing.LicenseService.ValidateFile();
+        LicenseStatusText = result.IsValid
+            ? $"Pro 已激活：{result.License!.Name}（{result.License.LicenseId}）"
+            + (result.License.ExpiresAtUtc is null ? "，永久有效" : $"，有效期至 {result.License.ExpiresAtUtc:yyyy-MM-dd}")
+            : "免费版（全部现有功能可用；Pro 为可选支持项，不设功能墙）";
+        OnPropertyChanged(nameof(CurrentLicense));
+    }
+
+    /// <summary>导入许可证文件（Ed25519 离线验证，通过后安装）。</summary>
+    [RelayCommand]
+    private void ImportLicense()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "选择许可证文件",
+            Filter = "许可证文件 (*.dat)|*.dat|全部文件 (*.*)|*.*",
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+        try
+        {
+            var license = Cclear.Core.Licensing.LicenseService.Install(dialog.FileName);
+            UiServices.ToastSuccess("许可证", $"已激活 Pro（{license.LicenseId}）");
+        }
+        catch (Exception ex)
+        {
+            UiServices.ToastWarning("许可证", ex.Message);
+        }
+        LoadLicenseStatus();
+    }
+
+    [RelayCommand]
+    private void RemoveLicense()
+    {
+        try
+        {
+            Cclear.Core.Licensing.LicenseService.RemoveLicense();
+            UiServices.ToastInfo("许可证", "已移除许可证");
+        }
+        catch (Exception ex)
+        {
+            UiServices.ToastWarning("许可证", ex.Message);
+        }
+        LoadLicenseStatus();
+    }
 
     /// <summary>应用可执行文件路径（计划任务指向）。</summary>
     public static string ExecutablePath =>

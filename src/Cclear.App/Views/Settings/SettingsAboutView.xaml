@@ -19,5 +19,23 @@
                            Margin="0,6,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             </StackPanel>
         </ui:Card>
+
+        <TextBlock Text="许可证" FontSize="18" FontWeight="SemiBold" Margin="0,20,0,0" />
+        <TextBlock Text="C-Clear 开源核心全功能免费。Pro（可选买断）= 自动清理 + 云规则推送 + 优先 issue 响应；购买后收到离线 license.dat 文件，导入即激活（Ed25519 离线验证，无联网 DRM）。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,4,0,10" TextWrapping="Wrap" />
+        <ui:Card>
+            <StackPanel>
+                <TextBlock Text="{Binding LicenseStatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <ui:Button Content="导入许可证" Icon="{ui:SymbolIcon Checkmark24}" Appearance="Primary"
+                               Command="{Binding ImportLicenseCommand}" MinWidth="120" MinHeight="34" />
+                    <ui:Button Content="移除许可证" Icon="{ui:SymbolIcon Delete24}"
+                               Command="{Binding RemoveLicenseCommand}" MinWidth="110" MinHeight="34" Margin="8,0,0,0" />
+                </StackPanel>
+                <TextBlock Text="{Binding LicensePath}" Margin="0,10,0,0" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </ui:Card>
     </StackPanel>
 </UserControl>
