@@ -42,6 +42,7 @@ public partial class MainWindow : FluentWindow
                 SpaceAnalysisPage => _vm.SpaceAnalysis,
                 CleanListPage => _vm.CleanList,
                 DuplicatesPage => _vm.Duplicates,
+                DeepCleanPage => _vm.DeepClean,
                 SettingsPage => _vm.Settings,
                 _ => page.DataContext,
             };
@@ -50,6 +51,11 @@ public partial class MainWindow : FluentWindow
         if (args is NavigatedEventArgs { Page: OverviewPage })
         {
             _vm.Overview.RefreshDashboard();
+        }
+        // 每次进入深度清理页刷新管理员/休眠状态
+        if (args is NavigatedEventArgs { Page: DeepCleanPage })
+        {
+            _vm.DeepClean.OnNavigatedTo();
         }
     }
 }

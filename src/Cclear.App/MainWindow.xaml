@@ -37,6 +37,9 @@
                 <ui:NavigationViewItem Content="重复与空目录" Icon="{ui:SymbolIcon Copy24}"
                                        TargetPageType="{x:Type views:DuplicatesPage}"
                                        NavigationCacheMode="Enabled" />
+                <ui:NavigationViewItem Content="深度清理" Icon="{ui:SymbolIcon Sparkle24}"
+                                       TargetPageType="{x:Type views:DeepCleanPage}"
+                                       NavigationCacheMode="Enabled" />
                 <ui:NavigationViewItem Content="设置" Icon="{ui:SymbolIcon Settings24}"
                                        TargetPageType="{x:Type views:SettingsPage}"
                                        NavigationCacheMode="Enabled" />
