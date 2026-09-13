@@ -5,6 +5,8 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>Cclear.App</RootNamespace>
     <AssemblyName>Cclear.App</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
+PackageIdentifier: ClearContributors.C-Clear
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: C-Clear Contributors
+PublisherUrl: https://github.com/c-clear-project
+PackageName: C-Clear
+PackageUrl: https://github.com/c-clear-project/c-clear
+License: MIT
+LicenseUrl: https://github.com/c-clear-project/c-clear/blob/main/LICENSE
+ShortDescription: Windows disk cleaner focused on freeing C drive space safely.
+Description: |-
+  C-Clear scans your C drive, shows what occupies space, identifies safely
+  cleanable content with a curated rule pack, and cleans to the Recycle Bin
+  with a full JSONL audit trail. Includes dev cache cleanup with official
+  CLI preference (npm/pnpm/pip/nuget/docker...), duplicate finder and empty
+  directory folding.
+Tags:
+  - disk-cleanup
+  - storage
+  - utilities
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: <RELEASE-URL>/Cclear.App.exe
+    InstallerSha256: <SHA256>
+    Commands:
+      - cclear
+ManifestType: singleton
+ManifestVersion: 1.6.0
