@@ -1,0 +1,7 @@
+{
+  "id": "cargo-registry-cache",
+  "name": "Cargo registry 缓存",
+  "level": "Caution",
+  "paths": ["%USERPROFILE%\\.cargo\\registry\\cache"],
+  "explanation": "crates.io 下载缓存（.crate 文件）；重建代价：重新构建时重新下载。只动 registry\\cache，不动 registry\\src 与已安装工具"
+}

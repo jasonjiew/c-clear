@@ -1,0 +1,8 @@
+{
+  "id": "uv-cache",
+  "name": "uv 缓存",
+  "level": "Caution",
+  "paths": ["%LOCALAPPDATA%\\uv\\cache"],
+  "cli": { "command": "uv", "args": "cache clean" },
+  "explanation": "uv 包缓存；重建代价：重新安装包时重新下载。优先官方命令 uv cache clean"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "npm-cache",
+  "name": "npm 缓存",
+  "level": "Caution",
+  "paths": ["%LOCALAPPDATA%\\npm-cache"],
+  "cli": { "command": "npm", "args": "cache clean --force" },
+  "explanation": "npm 包下载缓存；重建代价：重新安装依赖时需重新下载（视网速数分钟）。优先执行官方命令 npm cache clean --force，npm 不在 PATH 时回退目录删除"
+}

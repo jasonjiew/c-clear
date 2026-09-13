@@ -40,10 +40,45 @@ public sealed class ManagedTreeScanner : IScanner
     public Task<ScanResult> ScanAsync(ScanRequest request, IProgress<ScanProgress>? progress, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(request.RootPath);
-        return Task.Run(() => ScanCore(request.RootPath, progress, ct), ct);
+        return Task.Run(() => ScanCore(request.RootPath, request.ExcludePaths, progress, ct), ct);
     }
 
-    private ScanResult ScanCore(string rootPath, IProgress<ScanProgress>? progress, CancellationToken ct)
+    private static IReadOnlyList<string> NormalizeExcludes(IReadOnlyList<string>? excludePaths)
+    {
+        if (excludePaths is not { Count: > 0 })
+        {
+            return Array.Empty<string>();
+        }
+        var list = new List<string>(excludePaths.Count);
+        foreach (var path in excludePaths)
+        {
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                list.Add(path.TrimEnd('\\'));
+            }
+        }
+        return list;
+    }
+
+    private static bool IsExcluded(string extendedPath, IReadOnlyList<string> excludes)
+    {
+        if (excludes.Count == 0)
+        {
+            return false;
+        }
+        var display = PathHelper.GetDisplayPath(extendedPath).TrimEnd('\\');
+        foreach (var excluded in excludes)
+        {
+            if (display.Equals(excluded, StringComparison.OrdinalIgnoreCase)
+                || display.StartsWith(excluded + "\\", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ScanResult ScanCore(string rootPath, IReadOnlyList<string>? excludePaths, IProgress<ScanProgress>? progress, CancellationToken ct)
     {
         string full = Path.GetFullPath(rootPath);
         if (!Directory.Exists(full))
@@ -52,6 +87,7 @@ public sealed class ManagedTreeScanner : IScanner
         }
         string extended = PathHelper.GetExtendedPath(full);
         string display = PathHelper.GetDisplayPath(full);
+        var excludes = NormalizeExcludes(excludePaths);
 
         var sw = Stopwatch.StartNew();
         var tree = new FileTree();
@@ -106,7 +142,7 @@ public sealed class ManagedTreeScanner : IScanner
                     }
                     try
                     {
-                        ProcessDirectory(job.Path, job.NodeIndex, tree, queue, denied, ctx, token);
+                        ProcessDirectory(job.Path, job.NodeIndex, tree, queue, denied, ctx, token, excludes);
                     }
                     finally
                     {
@@ -180,7 +216,7 @@ public sealed class ManagedTreeScanner : IScanner
 
     private static void ProcessDirectory(string dirPath, int dirIndex, FileTree tree,
         ConcurrentQueue<(string Path, int NodeIndex)> queue, ConcurrentQueue<string> denied,
-        ScanContext ctx, CancellationToken ct)
+        ScanContext ctx, CancellationToken ct, IReadOnlyList<string> excludes)
     {
         Volatile.Write(ref ctx.CurrentDir, dirPath);
         try
@@ -196,7 +232,7 @@ public sealed class ManagedTreeScanner : IScanner
                 {
                     ct.ThrowIfCancellationRequested();
                 }
-                HandleEntry(entry, dirPath, dirIndex, tree, queue, ctx);
+                HandleEntry(entry, dirPath, dirIndex, tree, queue, ctx, excludes);
             }
         }
         catch (UnauthorizedAccessException)
@@ -217,7 +253,7 @@ public sealed class ManagedTreeScanner : IScanner
     }
 
     private static void HandleEntry(EntryInfo entry, string dirPath, int dirIndex, FileTree tree,
-        ConcurrentQueue<(string Path, int NodeIndex)> queue, ScanContext ctx)
+        ConcurrentQueue<(string Path, int NodeIndex)> queue, ScanContext ctx, IReadOnlyList<string> excludes)
     {
         var flags = NodeClassifier.Classify(entry.Attributes, entry.IsDirectory);
 
@@ -227,8 +263,13 @@ public sealed class ManagedTreeScanner : IScanner
             int childIndex = tree.AddNode(entry.Name, dirIndex, entry.Attributes, flags, 0);
             if ((flags & NodeFlags.ReparsePoint) == 0)
             {
+                var childPath = PathHelper.CombineDir(dirPath, entry.Name);
+                if (IsExcluded(childPath, excludes))
+                {
+                    return; // 排除目录：不建子树、不递归（已建的外壳节点保留以便 UI 展示）
+                }
                 tree.IncrementPendingChildDirs(dirIndex);
-                queue.Enqueue((PathHelper.CombineDir(dirPath, entry.Name), childIndex));
+                queue.Enqueue((childPath, childIndex));
             }
             return;
         }

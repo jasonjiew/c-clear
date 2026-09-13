@@ -10,7 +10,7 @@ public interface IScanner
     Task<ScanResult> ScanAsync(ScanRequest request, IProgress<ScanProgress>? progress, CancellationToken ct);
 }
 
-public sealed record ScanRequest(string RootPath);
+public sealed record ScanRequest(string RootPath, IReadOnlyList<string>? ExcludePaths = null);
 
 public sealed record ScanProgress(long FilesScanned, long BytesSeen, string CurrentDir);
 

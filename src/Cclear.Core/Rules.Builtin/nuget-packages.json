@@ -1,0 +1,8 @@
+{
+  "id": "nuget-packages",
+  "name": "NuGet 包缓存",
+  "level": "Caution",
+  "paths": ["%USERPROFILE%\\.nuget\\packages"],
+  "cli": { "command": "dotnet", "args": "nuget locals all --clear" },
+  "explanation": "NuGet 全局包目录；重建代价：还原（restore）时重新下载。优先官方命令 dotnet nuget locals all --clear（同时清理 http 缓存）；dotnet 不在 PATH 时回退目录删除"
+}

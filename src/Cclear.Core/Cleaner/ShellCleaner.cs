@@ -80,6 +80,15 @@ public sealed class ShellCleaner : ICleaner
                 continue;
             }
 
+            // 官方 CLI 优先（可为 0 条目，如 docker）：成功即完成该类；失败回退逐文件删除
+            if (category.CliCommand is not null && category.RuleId != WindowsUpdateRuleId)
+            {
+                if (TryRunOfficialCli(category, audit, progress, ref filesDone, ref deleted, ref bytesDone, filesTotal))
+                {
+                    continue;
+                }
+            }
+
             if (category.Items.Count == 0)
             {
                 continue;
@@ -119,6 +128,28 @@ public sealed class ShellCleaner : ICleaner
             $"deleted={deleted};skipped={skipped}", $"log={audit.FilePath}"));
         sw.Stop();
         return new CleanResult(freed, deleted, skipped, skippedPaths, sw.Elapsed);
+    }
+
+    /// <summary>执行规则标注的官方 CLI；命令存在且退出码 0 视为成功。</summary>
+    private bool TryRunOfficialCli(CleanCategory category, AuditLogger audit, IProgress<CleanProgress>? progress,
+        ref int filesDone, ref int deleted, ref long bytesDone, int filesTotal)
+    {
+        progress?.Report(new CleanProgress(filesDone, filesTotal, bytesDone,
+            $"执行官方命令：{category.CliCommand} {category.CliArgs}"));
+        var exitCode = CliRunner.Run(category.CliCommand!, category.CliArgs ?? "");
+        filesDone += category.Items.Count;
+        if (exitCode == 0)
+        {
+            deleted += category.Items.Count;
+            bytesDone += category.EstimatedBytes;
+            audit.Write(new AuditEntry(DateTime.Now, category.RuleId, "(cli)",
+                category.EstimatedBytes, "cli-ok", $"{category.CliCommand} {category.CliArgs}"));
+            return true;
+        }
+        audit.Write(new AuditEntry(DateTime.Now, category.RuleId, "(cli)",
+            category.EstimatedBytes, "cli-failed",
+            exitCode is null ? "命令不在 PATH，回退目录删除" : $"退出码 {exitCode}，回退目录删除"));
+        return false;
     }
 
     private void DeleteCategoryFiles(CleanCategory category, CleanOptions options, AuditLogger audit,

@@ -11,10 +11,12 @@ public sealed record ConfirmRow(bool Checked, string Name, string LevelText, str
 public partial class ConfirmCleanWindow : Window
 {
     private readonly bool _containsShellAction;
+    private readonly bool _permanentMode;
 
     public ConfirmCleanWindow(IReadOnlyList<CleanCategory> categories, bool useRecycleBin)
     {
         InitializeComponent();
+        _permanentMode = !useRecycleBin;
         var rows = categories.Select(c => new ConfirmRow(
             true,
             c.DisplayName,
@@ -37,11 +39,27 @@ public partial class ConfirmCleanWindow : Window
         BinWarning.Visibility = _containsShellAction ? Visibility.Visible : Visibility.Collapsed;
         RecycleHint.Text = useRecycleBin
             ? "文件删除将进入回收站，可随时还原。"
-            : "永久删除模式：文件不会进入回收站！";
+            : "⚠ 永久删除模式：文件不进入回收站，无法还原！";
+        if (!useRecycleBin)
+        {
+            RecycleHint.Foreground = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0xC6, 0x28, 0x28));
+        }
     }
 
     private void OnConfirm(object sender, RoutedEventArgs e)
     {
+        if (_permanentMode)
+        {
+            var answer = MessageBox.Show(this,
+                "永久删除模式：以下文件将不进入回收站、无法还原。\n\n确定要永久删除吗？",
+                "二次确认（永久删除）", MessageBoxButton.YesNo, MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (answer != MessageBoxResult.Yes)
+            {
+                return;
+            }
+        }
         if (_containsShellAction)
         {
             var answer = MessageBox.Show(this,

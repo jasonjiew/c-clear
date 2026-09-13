@@ -1,0 +1,8 @@
+{
+  "id": "firefox-cache",
+  "name": "Firefox 浏览器缓存",
+  "level": "Safe",
+  "paths": ["%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles\\*\\cache2"],
+  "preconditionProcesses": ["firefox"],
+  "explanation": "网页缓存；重建代价：重新访问网页时重新下载。绝不触碰密码/Cookie/书签/历史；Firefox 运行中自动跳过"
+}

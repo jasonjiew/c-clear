@@ -1,0 +1,12 @@
+{
+  "id": "chrome-cache",
+  "name": "Chrome 浏览器缓存",
+  "level": "Safe",
+  "paths": [
+    "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Cache",
+    "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\Code Cache",
+    "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\*\\GPUCache"
+  ],
+  "preconditionProcesses": ["chrome"],
+  "explanation": "网页缓存；重建代价：重新访问网页时重新下载。绝不触碰密码/登录数据/Cookie/收藏/历史；Chrome 运行中自动跳过"
+}

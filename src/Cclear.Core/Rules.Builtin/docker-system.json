@@ -1,0 +1,8 @@
+{
+  "id": "docker-system",
+  "name": "Docker 悬空资源",
+  "level": "Caution",
+  "paths": [],
+  "cli": { "command": "docker", "args": "system prune -f" },
+  "explanation": "不直接删除任何 Docker 文件；执行官方命令 docker system prune -f（仅清理悬空镜像/停止容器/无用网络，不动卷）。Docker 未运行或未安装时自动跳过。注意：不清理卷（-v 才会动卷）"
+}

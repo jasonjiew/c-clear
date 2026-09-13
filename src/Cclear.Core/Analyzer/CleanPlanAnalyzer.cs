@@ -29,6 +29,9 @@ public sealed class CleanPlanAnalyzer
         _scanner = scanner;
     }
 
+    /// <summary>排除目录（来自设置）：传入每次规则扫描，命中的子树整体跳过。</summary>
+    public IReadOnlyList<string>? ExcludePaths { get; set; }
+
     public async Task<CleanPlan> BuildPlanAsync(IReadOnlyList<CleanupRule> rules,
         IProgress<CleanAnalysisProgress>? progress, CancellationToken ct)
     {
@@ -57,7 +60,7 @@ public sealed class CleanPlanAnalyzer
 
             try
             {
-                var category = rule.ShellAction ? BuildShellActionCategory(rule)
+                CleanCategory? category = rule.ShellAction ? BuildShellActionCategory(rule)
                     : rule.ReportOnly ? BuildReportOnlyCategory(rule)
                     : await BuildFileCategoryAsync(rule, ct);
                 if (category is null)
@@ -68,7 +71,8 @@ public sealed class CleanPlanAnalyzer
                 {
                     category = category with { Explanation = category.Explanation + "（提示：" + string.Join("；", notes) + "）" };
                 }
-                if (category.FileCount > 0 || category.EstimatedBytes > 0)
+                // CLI 类即使估算为 0 也要保留（执行时由 CLI 清理，如 docker）
+                if (category.FileCount > 0 || category.EstimatedBytes > 0 || rule.Cli is not null)
                 {
                     categories.Add(category);
                 }
@@ -91,7 +95,7 @@ public sealed class CleanPlanAnalyzer
     private async Task<CleanCategory?> BuildFileCategoryAsync(CleanupRule rule, CancellationToken ct)
     {
         var roots = RulePathExpander.Expand(rule);
-        if (roots.Count == 0)
+        if (roots.Count == 0 && rule.Cli is null)
         {
             return null;
         }
@@ -105,12 +109,12 @@ public sealed class CleanPlanAnalyzer
         foreach (var root in roots)
         {
             ct.ThrowIfCancellationRequested();
-            var result = await _scanner.ScanAsync(new ScanRequest(root.BaseDir), null, ct);
+            var result = await _scanner.ScanAsync(new ScanRequest(root.BaseDir, ExcludePaths), null, ct);
             CollectMatching(result.Tree, result.Tree.RootIndex, result.Tree.RootIndex, root,
                 includeRegexes, excludeRegexes, cutoff, rule, items);
         }
 
-        if (items.Count == 0)
+        if (items.Count == 0 && rule.Cli is null)
         {
             return null;
         }
@@ -124,7 +128,9 @@ public sealed class CleanPlanAnalyzer
             items,
             BuildExplanation(rule),
             rule.PreconditionProcesses,
-            IsShellAction: false);
+            IsShellAction: false,
+            rule.Cli?.Command,
+            rule.Cli?.Args);
     }
 
     /// <summary>shellAction 规则（清空回收站）：经 SHQueryRecycleBin 报告每卷合计。</summary>

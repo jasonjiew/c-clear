@@ -1,0 +1,12 @@
+{
+  "id": "vscode-cache",
+  "name": "VS Code 缓存",
+  "level": "Caution",
+  "paths": [
+    "%APPDATA%\\Code\\Cache",
+    "%APPDATA%\\Code\\CachedData",
+    "%APPDATA%\\Code\\Code Cache"
+  ],
+  "preconditionProcesses": ["Code"],
+  "explanation": "UI/代码缓存；重建代价：首次启动与打开项目稍慢。绝不触碰 User/globalStorage 与 workspaceStorage（含你的设置与扩展数据）；VS Code 运行中自动跳过"
+}

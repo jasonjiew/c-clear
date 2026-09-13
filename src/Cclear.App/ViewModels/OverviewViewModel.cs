@@ -76,6 +76,7 @@ public sealed partial class OverviewViewModel : ObservableObject
         try
         {
             var rules = RulePackLoader.LoadEmbedded();
+            _analyzer.ExcludePaths = Cclear.App.Services.SettingsStore.Instance.NormalizedExclusions();
             var progress = new Progress<CleanAnalysisProgress>(p =>
                 StatusText = $"体检中（{p.RulesDone}/{p.RulesTotal}）：{p.CurrentRule}");
             var plan = await _analyzer.BuildPlanAsync(rules, progress, CancellationToken.None);
@@ -101,7 +102,7 @@ public sealed partial class OverviewViewModel : ObservableObject
         {
             var progress = new Progress<ScanProgress>(p =>
                 StatusText = $"分析中：{ByteSizeFormatter.Format(p.BytesSeen)} / {p.FilesScanned:N0} 个文件");
-            var result = await _scanner.ScanAsync(new ScanRequest(@"C:\"), progress, CancellationToken.None);
+            var result = await _scanner.ScanAsync(new ScanRequest(@"C:\", Cclear.App.Services.SettingsStore.Instance.NormalizedExclusions()), progress, CancellationToken.None);
 
             LargeFiles.Clear();
             foreach (var f in SpaceAnalysis.FindLargeFiles(result.Tree, SpaceAnalysis.DefaultLargeFileThresholdBytes, 50))

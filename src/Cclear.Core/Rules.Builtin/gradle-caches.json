@@ -1,0 +1,7 @@
+{
+  "id": "gradle-caches",
+  "name": "Gradle 依赖缓存",
+  "level": "Caution",
+  "paths": ["%USERPROFILE%\\.gradle\\caches"],
+  "explanation": "仅清理 caches 子目录（构建缓存与依赖），不动 .gradle 其他内容；重建代价：下次构建重新下载全部依赖，可能耗时数分钟到数十分钟"
+}

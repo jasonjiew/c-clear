@@ -1,0 +1,12 @@
+{
+  "id": "edge-cache",
+  "name": "Edge 浏览器缓存",
+  "level": "Safe",
+  "paths": [
+    "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Cache",
+    "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\Code Cache",
+    "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\*\\GPUCache"
+  ],
+  "preconditionProcesses": ["msedge"],
+  "explanation": "网页缓存；重建代价：重新访问网页时重新下载。绝不触碰密码/登录数据/Cookie/收藏/历史；Edge 运行中自动跳过"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "maven-repository",
+  "name": "Maven 本地仓库",
+  "level": "Caution",
+  "paths": ["%USERPROFILE%\\.m2\\repository"],
+  "explanation": "仅清理 repository 依赖目录，绝不触碰 settings.xml；重建代价：下次构建重新下载全部依赖"
+}

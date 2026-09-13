@@ -84,7 +84,7 @@ public partial class ScanViewModel : ObservableObject
 
         try
         {
-            var result = await _scanner.ScanAsync(new ScanRequest(RootPath), progress, token);
+            var result = await _scanner.ScanAsync(new ScanRequest(RootPath, Services.SettingsStore.Instance.NormalizedExclusions()), progress, token);
             var root = new TreeNodeViewModel(result.Tree, result.Tree.RootIndex);
             RootNodes.Add(root);
             DeniedCount = result.AccessDeniedDirs.Count;

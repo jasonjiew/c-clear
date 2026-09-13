@@ -71,15 +71,16 @@ public sealed partial class CleanListViewModel : ObservableObject
         }
 
         // 红线：Manual（仅报告）类不可执行；以上过滤已排除（Items 为空且非 ShellAction）
+        bool permanent = Services.SettingsStore.Instance.PermanentDelete;
         IsCleaning = true;
         try
         {
-            if (!_dialogs.ConfirmClean(selected, useRecycleBin: true))
+            if (!_dialogs.ConfirmClean(selected, useRecycleBin: !permanent))
             {
                 return;
             }
             var result = _dialogs.RunWithProgress((progress, ct) =>
-                _cleaner.ExecuteAsync(selected, new CleanOptions(UseRecycleBin: true), progress, ct)
+                _cleaner.ExecuteAsync(selected, new CleanOptions(UseRecycleBin: !permanent), progress, ct)
                     .GetAwaiter().GetResult());
             _dialogs.ShowResult(result, (_cleaner as ShellCleaner)?.LastAuditLogPath ?? "",
                 selected.Sum(c => c.EstimatedBytes));

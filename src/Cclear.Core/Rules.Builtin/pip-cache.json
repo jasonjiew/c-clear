@@ -1,0 +1,8 @@
+{
+  "id": "pip-cache",
+  "name": "pip 缓存",
+  "level": "Caution",
+  "paths": ["%LOCALAPPDATA%\\pip\\cache"],
+  "cli": { "command": "pip", "args": "cache purge" },
+  "explanation": "pip 下载/wheel 缓存；重建代价：重新安装包时需重新下载构建。优先官方命令 pip cache purge"
+}

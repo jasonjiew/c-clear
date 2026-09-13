@@ -1,0 +1,11 @@
+{
+  "id": "jetbrains-caches",
+  "name": "JetBrains IDE 缓存与日志",
+  "level": "Caution",
+  "paths": [
+    "%LOCALAPPDATA%\\JetBrains\\*\\caches",
+    "%LOCALAPPDATA%\\JetBrains\\*\\log"
+  ],
+  "preconditionProcesses": ["idea64", "pycharm64", "webstorm64", "clion64", "goland64", "rider64", "datagrip64"],
+  "explanation": "索引/反编译缓存与日志；重建代价：重新打开项目需重新建立索引（大项目数十分钟）。IDE 运行中会自动跳过"
+}

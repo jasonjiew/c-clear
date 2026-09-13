@@ -1,0 +1,8 @@
+{
+  "id": "pnpm-store",
+  "name": "pnpm 存储仓库",
+  "level": "Caution",
+  "paths": ["%LOCALAPPDATA%\\pnpm\\store"],
+  "cli": { "command": "pnpm", "args": "store prune" },
+  "explanation": "pnpm 内容寻址存储；重建代价： prune 后未引用的包需重新下载。优先官方命令 pnpm store prune（保留仍被引用的包）；pnpm 不在 PATH 时回退目录删除（项目内为硬链接，删除存储不会破坏已安装依赖）"
+}

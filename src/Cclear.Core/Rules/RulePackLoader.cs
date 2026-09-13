@@ -107,7 +107,7 @@ public static class RulePackLoader
         {
             throw new RulePackException($"规则文件 {sourceName} 缺少 id");
         }
-        if (dto.Paths.Length == 0 && !dto.ShellAction)
+        if (dto.Paths.Length == 0 && !dto.ShellAction && dto.Cli is null)
         {
             throw new RulePackException($"规则 {dto.Id} 缺少 paths");
         }
@@ -129,7 +129,8 @@ public static class RulePackLoader
             dto.PreconditionProcesses,
             dto.Explanation,
             dto.ReportOnly,
-            dto.ShellAction);
+            dto.ShellAction,
+            dto.Cli is null ? null : new CleanupCli(dto.Cli.Command ?? "", dto.Cli.Args ?? ""));
     }
 
     internal sealed class RuleDto
@@ -172,5 +173,17 @@ public static class RulePackLoader
 
         [JsonPropertyName("shellAction")]
         public bool ShellAction { get; set; }
+
+        [JsonPropertyName("cli")]
+        public CliDto? Cli { get; set; }
+    }
+
+    internal sealed class CliDto
+    {
+        [JsonPropertyName("command")]
+        public string? Command { get; set; }
+
+        [JsonPropertyName("args")]
+        public string? Args { get; set; }
     }
 }

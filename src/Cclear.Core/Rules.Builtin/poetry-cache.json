@@ -1,0 +1,8 @@
+{
+  "id": "poetry-cache",
+  "name": "poetry 缓存",
+  "level": "Caution",
+  "paths": ["%LOCALAPPDATA%\\pypoetry\\Cache"],
+  "cli": { "command": "poetry", "args": "cache clear --all . --no-interaction" },
+  "explanation": "poetry 包缓存；重建代价：重新安装依赖时重新下载。优先官方命令 poetry cache clear"
+}
