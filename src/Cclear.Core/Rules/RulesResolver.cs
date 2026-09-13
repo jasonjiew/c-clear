@@ -10,11 +10,12 @@ public sealed record ActiveRules(IReadOnlyList<CleanupRule> Rules, string Source
 /// <summary>规则来源解析：在线规则包优先（有效且非空），否则回退内置包。</summary>
 public static class RulesResolver
 {
-    public static ActiveRules LoadActive()
+    /// <summary>加载当前生效规则（packPath 供测试注入；生产读 %APPDATA% 安装位置）。</summary>
+    public static ActiveRules LoadActive(string? packPath = null)
     {
         try
         {
-            var path = RulesUpdater.InstalledPackPath;
+            var path = packPath ?? RulesUpdater.InstalledPackPath;
             if (File.Exists(path))
             {
                 var pack = RulesPackFile.Load(path);
