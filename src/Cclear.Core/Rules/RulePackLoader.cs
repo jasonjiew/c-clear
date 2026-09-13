@@ -107,7 +107,7 @@ public static class RulePackLoader
         {
             throw new RulePackException($"规则文件 {sourceName} 缺少 id");
         }
-        if (dto.Paths.Length == 0)
+        if (dto.Paths.Length == 0 && !dto.ShellAction)
         {
             throw new RulePackException($"规则 {dto.Id} 缺少 paths");
         }
@@ -128,7 +128,8 @@ public static class RulePackLoader
             dto.RequiresAdmin,
             dto.PreconditionProcesses,
             dto.Explanation,
-            dto.ReportOnly);
+            dto.ReportOnly,
+            dto.ShellAction);
     }
 
     internal sealed class RuleDto
@@ -168,5 +169,8 @@ public static class RulePackLoader
 
         [JsonPropertyName("reportOnly")]
         public bool ReportOnly { get; set; }
+
+        [JsonPropertyName("shellAction")]
+        public bool ShellAction { get; set; }
     }
 }

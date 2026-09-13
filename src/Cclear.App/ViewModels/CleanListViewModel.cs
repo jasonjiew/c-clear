@@ -2,20 +2,47 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Cclear.App.Services;
 using Cclear.Core;
+using Cclear.Core.Cleaner;
 using Cclear.Core.Rules;
 
 namespace Cclear.App.ViewModels;
 
-/// <summary>清理清单页：体检结果展示与勾选（v0；清理执行在 W3 接入）。</summary>
+/// <summary>清理清单页：体检结果展示、勾选与清理执行。</summary>
 public sealed partial class CleanListViewModel : ObservableObject
 {
+    private readonly ICleaner _cleaner;
+    private readonly ICleanDialogs _dialogs;
+
     public string Title => "清理清单";
+
+    public CleanListViewModel() : this(new ShellCleaner(), new DialogService())
+    {
+    }
+
+    public CleanListViewModel(ICleaner cleaner, ICleanDialogs dialogs)
+    {
+        _cleaner = cleaner;
+        _dialogs = dialogs;
+    }
 
     [ObservableProperty]
     private string _summaryText = "尚未体检。请到“总览”页点击“一键体检”。";
 
+    [ObservableProperty]
+    private bool _isCleaning;
+
     public ObservableCollection<CleanCategoryViewModel> Categories { get; } = new();
+
+    public bool CanClean => !IsCleaning && Categories.Any(c => c.IsChecked && (c.Category.IsShellAction || c.Category.Items.Count > 0));
+
+    partial void OnIsCleaningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanClean));
+        ExecuteCleanCommand.NotifyCanExecuteChanged();
+    }
 
     public void LoadPlan(CleanPlan plan)
     {
@@ -27,6 +54,51 @@ public sealed partial class CleanListViewModel : ObservableObject
         SummaryText = Categories.Count == 0
             ? "没有发现可清理的内容。"
             : $"共 {Categories.Count} 类可清理，预计可释放 {ByteSizeFormatter.Format(plan.Categories.Sum(c => c.EstimatedBytes))}。删除默认进入回收站，可随时还原。";
+        OnPropertyChanged(nameof(CanClean));
+        ExecuteCleanCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanClean))]
+    private void ExecuteClean()
+    {
+        var selected = Categories
+            .Where(c => c.IsChecked && (c.Category.IsShellAction || c.Category.Items.Count > 0))
+            .Select(c => c.Category)
+            .ToList();
+        if (selected.Count == 0)
+        {
+            return;
+        }
+
+        // 红线：Manual（仅报告）类不可执行；以上过滤已排除（Items 为空且非 ShellAction）
+        IsCleaning = true;
+        try
+        {
+            if (!_dialogs.ConfirmClean(selected, useRecycleBin: true))
+            {
+                return;
+            }
+            var result = _dialogs.RunWithProgress((progress, ct) =>
+                _cleaner.ExecuteAsync(selected, new CleanOptions(UseRecycleBin: true), progress, ct)
+                    .GetAwaiter().GetResult());
+            _dialogs.ShowResult(result, (_cleaner as ShellCleaner)?.LastAuditLogPath ?? "",
+                selected.Sum(c => c.EstimatedBytes));
+            Categories.Clear();
+            SummaryText = $"清理完成：实际释放 {ByteSizeFormatter.Format(result.FreedBytes)}"
+                + $"（删除 {result.DeletedFiles:N0} 项，跳过 {result.SkippedFiles:N0} 项）。可到“总览”重新体检。";
+        }
+        catch (OperationCanceledException)
+        {
+            SummaryText = "清理已取消（已完成的删除保留）。";
+        }
+        catch (Exception ex)
+        {
+            SummaryText = "清理失败：" + ex.Message;
+        }
+        finally
+        {
+            IsCleaning = false;
+        }
     }
 }
 

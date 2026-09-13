@@ -10,7 +10,6 @@ using Cclear.Core.Cleaner;
 using Cclear.Core.Rules;
 using Cclear.Core.Scanner;
 using Cclear.Core.Win32;
-
 namespace Cclear.Core.Analyzer;
 
 public sealed record CleanAnalysisProgress(string CurrentRule, int RulesDone, int RulesTotal);
@@ -58,7 +57,9 @@ public sealed class CleanPlanAnalyzer
 
             try
             {
-                var category = rule.ReportOnly ? BuildReportOnlyCategory(rule) : await BuildFileCategoryAsync(rule, ct);
+                var category = rule.ShellAction ? BuildShellActionCategory(rule)
+                    : rule.ReportOnly ? BuildReportOnlyCategory(rule)
+                    : await BuildFileCategoryAsync(rule, ct);
                 if (category is null)
                 {
                     continue;
@@ -121,7 +122,31 @@ public sealed class CleanPlanAnalyzer
             items.Sum(i => i.SizeBytes),
             items.Count,
             items,
-            BuildExplanation(rule));
+            BuildExplanation(rule),
+            rule.PreconditionProcesses,
+            IsShellAction: false);
+    }
+
+    /// <summary>shellAction 规则（清空回收站）：经 SHQueryRecycleBin 报告每卷合计。</summary>
+    private CleanCategory? BuildShellActionCategory(CleanupRule rule)
+    {
+        long bytes = 0;
+        long items = 0;
+        foreach (var drive in DriveInfo.GetDrives()
+                     .Where(d => d.DriveType == DriveType.Fixed && d.IsReady)
+                     .Select(d => d.RootDirectory.FullName))
+        {
+            var info = RecycleBin.Query(drive);
+            bytes += info.SizeBytes;
+            items += info.ItemCount;
+        }
+        if (items == 0)
+        {
+            return null;
+        }
+        return new CleanCategory(rule.Id, rule.Name, rule.Level, bytes,
+            (int)Math.Min(int.MaxValue, items), Array.Empty<CleanItem>(), BuildExplanation(rule),
+            rule.PreconditionProcesses, IsShellAction: true);
     }
 
     private void CollectMatching(FileTree tree, int dirIndex, int rootIndex, RuleRoot root,
@@ -212,7 +237,7 @@ public sealed class CleanPlanAnalyzer
             return null;
         }
         return new CleanCategory(rule.Id, rule.Name, rule.Level, total, (int)Math.Min(int.MaxValue, files),
-            Array.Empty<CleanItem>(), BuildExplanation(rule));
+            Array.Empty<CleanItem>(), BuildExplanation(rule), rule.PreconditionProcesses, IsShellAction: false);
     }
 
     internal static string BuildExplanation(CleanupRule rule)

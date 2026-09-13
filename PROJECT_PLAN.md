@@ -274,3 +274,4 @@ public sealed record CleanResult(long FreedBytes, int DeletedFiles, int SkippedF
 ## 变更记录
 
 - 2026-09-13 v1：初版（调研 + 计划合并，环境已就绪）
+- 2026-09-13 W3：删除引擎由 IFileOperation 改为 SHFileOperationW(FOF_ALLOWUNDO)。原因：本机实测 IFileOperation::DeleteItem 对进程外调用方一律挂起（多探针验证：明文/加密文件、有无消息泵环境均复现；CLSID 与注册表核对无误）。SHFileOperationW 同为 Shell API、同样进回收站可还原，"默认回收站"红线不变；SHQueryRecycleBin/SHEmptyRecycleBin 维持原案。批内失败转单文件重试以保证逐文件归因。

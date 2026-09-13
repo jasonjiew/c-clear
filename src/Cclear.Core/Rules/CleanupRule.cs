@@ -16,4 +16,6 @@ public sealed record CleanupRule(
     string[] PreconditionProcesses,
     string Explanation,
     /// <summary>只报告大小不产生删除项（如 windows-old：引导走系统磁盘清理）。</summary>
-    bool ReportOnly = false);
+    bool ReportOnly = false,
+    /// <summary>经 Shell API 执行（如清空回收站），不枚举文件项。</summary>
+    bool ShellAction = false);

@@ -1,0 +1,11 @@
+{
+  "id": "recycle-bin",
+  "name": "清空回收站",
+  "level": "Caution",
+  "paths": [],
+  "shellAction": true,
+  "minAgeDays": 0,
+  "requiresAdmin": false,
+  "preconditionProcesses": [],
+  "explanation": "回收站中已删除的文件，清空后不可通过回收站还原（但仍是经 Shell API 执行）；请确认里面没有还需要的东西"
+}

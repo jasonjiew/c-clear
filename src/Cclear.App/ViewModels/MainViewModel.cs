@@ -1,3 +1,5 @@
+using Cclear.App.Services;
+using Cclear.Core.Cleaner;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Cclear.App.ViewModels;
@@ -15,9 +17,14 @@ public sealed partial class MainViewModel : ObservableObject
     private object? _currentPage;
 
     public MainViewModel()
+        : this(new ShellCleaner(), new DialogService())
+    {
+    }
+
+    public MainViewModel(ICleaner cleaner, ICleanDialogs dialogs)
     {
         SpaceAnalysis = new ScanViewModel();
-        CleanList = new CleanListViewModel();
+        CleanList = new CleanListViewModel(cleaner, dialogs);
         Overview = new OverviewViewModel(plan =>
         {
             CleanList.LoadPlan(plan);
