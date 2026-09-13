@@ -125,7 +125,18 @@ public sealed class CleanerTests : IDisposable
         }
         finally
         {
-            File.Delete(victim);
+            // 杀软/索引服务可能短暂持有新文件：尽力删除
+            for (int i = 0; i < 5 && File.Exists(victim); i++)
+            {
+                try
+                {
+                    File.Delete(victim);
+                }
+                catch (IOException)
+                {
+                    Thread.Sleep(300);
+                }
+            }
         }
     }
 

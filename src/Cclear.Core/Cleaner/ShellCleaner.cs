@@ -156,7 +156,7 @@ public sealed class ShellCleaner : ICleaner
         IProgress<CleanProgress>? progress, ref int filesDone, ref int deleted, ref int skipped,
         ref long bytesDone, List<string> skippedPaths, int filesTotal, CancellationToken ct)
     {
-        var pending = new List<CleanItem>();
+        var pending = new List<(CleanItem Item, bool IsDir)>();
         foreach (var item in category.Items)
         {
             ct.ThrowIfCancellationRequested();
@@ -167,14 +167,15 @@ public sealed class ShellCleaner : ICleaner
                 RecordSkip(item, "黑名单目录", audit, category.RuleId, ref skipped, ref filesDone, ref bytesDone, skippedPaths, progress, filesTotal);
                 continue;
             }
-            // 红线 2：reparse 文件（symlink 等）永不删除（OneDrive 占位 0x400000 除外）
+            bool isDir = Directory.Exists(item.Path) && !File.Exists(item.Path);
+            // 红线 2：reparse 项（symlink/junction）永不删除（OneDrive 占位 0x400000 除外）
             try
             {
                 var attributes = File.GetAttributes(item.Path);
                 if ((attributes & FileAttributes.ReparsePoint) != 0
                     && (attributes & (FileAttributes)0x400000) == 0)
                 {
-                    RecordSkip(item, "reparse 文件不触碰", audit, category.RuleId, ref skipped, ref filesDone, ref bytesDone, skippedPaths, progress, filesTotal);
+                    RecordSkip(item, "reparse 项不触碰", audit, category.RuleId, ref skipped, ref filesDone, ref bytesDone, skippedPaths, progress, filesTotal);
                     continue;
                 }
             }
@@ -183,25 +184,25 @@ public sealed class ShellCleaner : ICleaner
                 RecordSkip(item, "属性不可读（可能已消失）", audit, category.RuleId, ref skipped, ref filesDone, ref bytesDone, skippedPaths, progress, filesTotal);
                 continue;
             }
-            // 红线 3：占用预检（含文件已消失的判定）
+            // 红线 3：占用预检（含已消失的判定）
             if (!OccupancyProbe.CanDelete(item.Path, out var reason))
             {
                 RecordSkip(item, reason, audit, category.RuleId, ref skipped, ref filesDone, ref bytesDone, skippedPaths, progress, filesTotal);
                 continue;
             }
-            pending.Add(item);
+            pending.Add((item, isDir));
         }
 
-        // 分批经 IFileOperation 删除
-        var batch = new List<CleanItem>(64);
-        foreach (var item in pending)
+        // 分批经 Shell 删除
+        var batch = new List<(CleanItem Item, bool IsDir)>(64);
+        foreach (var entry in pending)
         {
             ct.ThrowIfCancellationRequested();
-            batch.Add(item);
+            batch.Add(entry);
             if (batch.Count >= 64)
             {
                 FlushBatch(batch, category, options, audit, progress, ref filesDone, ref deleted, ref skipped, ref bytesDone, skippedPaths, filesTotal);
-                batch = new List<CleanItem>(64);
+                batch = new List<(CleanItem Item, bool IsDir)>(64);
             }
         }
         if (batch.Count > 0)
@@ -210,18 +211,18 @@ public sealed class ShellCleaner : ICleaner
         }
     }
 
-    private void FlushBatch(List<CleanItem> batch, CleanCategory category, CleanOptions options, AuditLogger audit,
+    private void FlushBatch(List<(CleanItem Item, bool IsDir)> batch, CleanCategory category, CleanOptions options, AuditLogger audit,
         IProgress<CleanProgress>? progress, ref int filesDone, ref int deleted, ref int skipped, ref long bytesDone,
         List<string> skippedPaths, int filesTotal)
     {
         IReadOnlyList<FileDeleteOutcome> outcomes;
         try
         {
-            outcomes = ShellFileDeleter.DeleteBatch(batch.Select(i => i.Path).ToList(), options.UseRecycleBin);
+            outcomes = ShellFileDeleter.DeleteBatch(batch.Select(b => b.Item.Path).ToList(), options.UseRecycleBin);
         }
         catch (Exception ex)
         {
-            foreach (var item in batch)
+            foreach (var (item, _) in batch)
             {
                 RecordSkip(item, "删除引擎异常：" + ex.Message, audit, category.RuleId, ref skipped, ref filesDone, ref bytesDone, skippedPaths, progress, filesTotal);
             }
@@ -229,7 +230,7 @@ public sealed class ShellCleaner : ICleaner
         }
 
         var byPath = outcomes.Where(o => !string.IsNullOrEmpty(o.Path)).ToDictionary(o => o.Path, o => o.Hr, StringComparer.OrdinalIgnoreCase);
-        foreach (var item in batch)
+        foreach (var (item, isDir) in batch)
         {
             filesDone++;
             bytesDone += item.SizeBytes;
@@ -238,7 +239,7 @@ public sealed class ShellCleaner : ICleaner
             {
                 deleted++;
                 audit.Write(new AuditEntry(DateTime.Now, category.RuleId, item.Path, item.SizeBytes,
-                    options.UseRecycleBin ? "recycled" : "deleted", ""));
+                    options.UseRecycleBin ? "recycled" : "deleted", isDir ? "directory" : ""));
             }
             else
             {
@@ -247,7 +248,7 @@ public sealed class ShellCleaner : ICleaner
                 {
                     skippedPaths.Add(item.Path);
                 }
-                var detail = hr == 0x80070020 ? "被其他进程占用" : $"删除失败 0x{hr:X8}";
+                var detail = (isDir ? "目录" : "") + (hr == 0x80070020 ? "被其他进程占用" : $"删除失败 0x{hr:X8}");
                 audit.Write(new AuditEntry(DateTime.Now, category.RuleId, item.Path, item.SizeBytes, "skipped", detail));
             }
         }

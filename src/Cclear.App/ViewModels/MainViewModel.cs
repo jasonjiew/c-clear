@@ -10,6 +10,7 @@ public sealed partial class MainViewModel : ObservableObject
     public OverviewViewModel Overview { get; }
     public ScanViewModel SpaceAnalysis { get; }
     public CleanListViewModel CleanList { get; }
+    public DuplicatesViewModel Duplicates { get; }
     public SettingsViewModel Settings { get; }
 
     public IReadOnlyList<object> Pages { get; }
@@ -26,13 +27,14 @@ public sealed partial class MainViewModel : ObservableObject
     {
         SpaceAnalysis = new ScanViewModel();
         CleanList = new CleanListViewModel(cleaner, dialogs);
+        Duplicates = new DuplicatesViewModel(cleaner, dialogs);
         Settings = new SettingsViewModel();
         Overview = new OverviewViewModel(plan =>
         {
             CleanList.LoadPlan(plan);
             CurrentPage = CleanList;
         });
-        Pages = new object[] { Overview, SpaceAnalysis, CleanList, Settings };
+        Pages = new object[] { Overview, SpaceAnalysis, CleanList, Duplicates, Settings };
         CurrentPage = Overview;
     }
 }
