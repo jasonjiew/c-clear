@@ -17,18 +17,26 @@ public sealed record AutoCleanStatus(
 public static class AutoCleanScheduler
 {
     public const string TaskName = "C-Clear-AutoClean";
-    private const string TaskPath = "\\" + TaskName;
+    private static readonly string TaskPath = "\\" + TaskName;
 
     public static bool IsRegistered()
     {
+        dynamic? task = null;
         try
         {
-            using var task = OpenTask();
+            task = OpenTask();
             return task is not null;
         }
         catch (Exception)
         {
             return false;
+        }
+        finally
+        {
+            if (task is not null)
+            {
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(task);
+            }
         }
     }
 
@@ -44,8 +52,10 @@ public static class AutoCleanScheduler
             }
             var lastRun = (DateTime)task.LastRunTime;
             var lastResult = (uint)task.LastTaskResult;
-            var enabled = (int)task.Enabled != 0;
-            return new AutoCleanStatus(true, enabled, lastRun == DateTime.MinValue ? null : lastRun,
+            var enabled = Convert.ToInt32(task.Enabled) != 0;
+            // COM 的“从未运行”哨兵是零 FILETIME（本地显示约 1601/1999 年），视为从未运行
+            return new AutoCleanStatus(true, enabled,
+                lastRun.Year < 2000 ? null : (DateTime?)lastRun,
                 lastResult,
                 lastResult switch
                 {
@@ -157,7 +167,7 @@ public static class AutoCleanScheduler
             dynamic rootFolder = service.GetFolder("\\");
             try
             {
-                return rootFolder.GetTask(TaskName);
+                return rootFolder.GetTask(TaskPath);
             }
             catch (Exception)
             {
