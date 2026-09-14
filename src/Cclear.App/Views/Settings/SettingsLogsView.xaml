@@ -10,8 +10,15 @@
         <StackPanel Orientation="Horizontal">
             <ui:Button Content="打开日志文件夹" Icon="{ui:SymbolIcon Folder24}"
                        Command="{Binding OpenLogsFolderCommand}" MinWidth="140" MinHeight="34" Appearance="Primary" />
-            <TextBlock Text="{Binding LogsFolder}" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <ui:Button Content="导出本周 HTML 周报" Icon="{ui:SymbolIcon Document24}"
+                       Command="{Binding ExportWeeklyReportCommand}" MinWidth="160" MinHeight="34" Margin="8,0,0,0" />
+            <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="6,2"
+                    Margin="8,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding ReportIsPro, Converter={StaticResource BoolToInvisibility}}">
+                <TextBlock Text="Pro" FontSize="11" FontWeight="Bold" Foreground="White" />
+            </Border>
+            <TextBlock Text="{Binding ReportStatusText}" Margin="12,0,0,0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
         </StackPanel>
 
         <TextBlock Text="清理历史（最近 30 天）" FontSize="18" FontWeight="SemiBold" Margin="0,20,0,0" />

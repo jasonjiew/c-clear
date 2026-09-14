@@ -11,6 +11,21 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Any(a => string.Equals(a, "--sample-space", StringComparison.OrdinalIgnoreCase)))
+        {
+            // 每日空间采样（V3 P6 计划任务无头模式）：追加一行快照即退出
+            var driveRoot = Cclear.Core.Win32.DriveCatalog.TryGetRoot(Services.SettingsStore.Instance.SelectedDrive) ?? @"C:\";
+            try
+            {
+                Cclear.Core.Trend.SpaceSnapshotStore.AppendForDrive(driveRoot);
+                Shutdown(0);
+            }
+            catch (Exception)
+            {
+                Shutdown(1);
+            }
+            return;
+        }
         if (e.Args.Any(a => string.Equals(a, "--autoclean", StringComparison.OrdinalIgnoreCase)))
         {
             // 计划任务无头模式（F3）：仅 Safe 规则、回收站模式、写审计与历史，跑完即退出

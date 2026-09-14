@@ -174,6 +174,44 @@ public sealed partial class OverviewViewModel : ObservableObject
         UpdateLastCleanText();
         LoadTrend();
         _ = LoadCloudStatsAsync();
+        _ = LoadSpaceForecastAsync();
+    }
+
+    // ---------- 满盘趋势预测（V3 P6，Pro 底座） ----------
+
+    [ObservableProperty]
+    private string _forecastBadgeText = "";
+
+    /// <summary>预测徽标可见性（可靠时显示）。</summary>
+    public bool HasForecastBadge => ForecastBadgeText.Length > 0;
+
+    private void UpdateForecastBadge(Cclear.Core.Trend.SpaceForecast? forecast)
+    {
+        ForecastBadgeText = forecast is { Reliable: true }
+            ? $"预计 {forecast.DaysUntilFull} 天后满盘"
+            : "";
+        OnPropertyChanged(nameof(HasForecastBadge));
+    }
+
+    /// <summary>追加本次启动的空间采样并计算满盘预测（后台执行，不阻塞仪表盘）。</summary>
+    private async Task LoadSpaceForecastAsync()
+    {
+        var driveRoot = SelectedDriveLetter + ":\\";
+        var selectedLetter = SelectedDriveLetter;
+        try
+        {
+            await Task.Run(() => Cclear.Core.Trend.SpaceSnapshotStore.AppendForDrive(driveRoot));
+            var snapshots = await Task.Run(() => Cclear.Core.Trend.SpaceSnapshotStore.Read());
+            // 只在用户仍停留在同一盘时刷新徽标（避免切盘竞态覆盖）
+            if (SelectedDriveLetter == selectedLetter)
+            {
+                UpdateForecastBadge(Cclear.Core.Trend.SpaceForecaster.Forecast(snapshots, driveRoot));
+            }
+        }
+        catch (Exception)
+        {
+            // 采样/预测失败不影响仪表盘其他功能
+        }
     }
 
     /// <summary>后台统计 OneDrive 云占位文件（只读元数据，绝不触发下载）。</summary>

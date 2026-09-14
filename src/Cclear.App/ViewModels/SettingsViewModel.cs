@@ -277,6 +277,142 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void RefreshAutoCleanStatus() => RefreshAutoCleanLastRun();
 
+    // ---------- 每日空间采样（V3 P6） ----------
+
+    [ObservableProperty]
+    private bool _spaceSamplingEnabled;
+
+    [ObservableProperty]
+    private string _spaceSamplingStatusText = "";
+
+    private bool _suppressSamplingToggle;
+
+    partial void OnSpaceSamplingEnabledChanged(bool value)
+    {
+        if (_suppressSamplingToggle)
+        {
+            return;
+        }
+        try
+        {
+            if (value)
+            {
+                Cclear.Core.Trend.SpaceSnapshotScheduler.Register(9, ExecutablePath);
+                SpaceSamplingStatusText = "已注册：每天 09:00 自动采样一次剩余空间（追加一行快照即退出）";
+                UiServices.ToastSuccess("空间采样", "每日采样任务已注册");
+            }
+            else
+            {
+                Cclear.Core.Trend.SpaceSnapshotScheduler.Unregister();
+                SpaceSamplingStatusText = "已取消每日采样任务";
+                UiServices.ToastInfo("空间采样", "每日采样任务已取消");
+            }
+        }
+        catch (Exception ex)
+        {
+            SpaceSamplingStatusText = "操作失败：" + ex.Message;
+            _suppressSamplingToggle = true;
+            SpaceSamplingEnabled = !value;
+            _suppressSamplingToggle = false;
+        }
+    }
+
+    [RelayCommand]
+    private void RefreshSamplingStatus()
+    {
+        try
+        {
+            _suppressSamplingToggle = true;
+            SpaceSamplingEnabled = Cclear.Core.Trend.SpaceSnapshotScheduler.IsRegistered();
+            _suppressSamplingToggle = false;
+            var snapshotCount = Cclear.Core.Trend.SpaceSnapshotStore.Read().Count;
+            SpaceSamplingStatusText = Cclear.Core.Trend.SpaceSnapshotScheduler.IsRegistered()
+                ? $"已注册每日采样；当前已有 {snapshotCount:N0} 条空间快照"
+                : $"未注册每日采样；当前已有 {snapshotCount:N0} 条空间快照";
+        }
+        catch (Exception ex)
+        {
+            SpaceSamplingStatusText = "查询采样任务失败：" + ex.Message;
+        }
+    }
+
+    // ---------- 周报导出（V3 P6，Pro 底座：未激活也可用） ----------
+
+    [ObservableProperty]
+    private bool _isExportingReport;
+
+    [ObservableProperty]
+    private string _reportStatusText = "";
+
+    public bool ReportIsPro =>
+        Cclear.Core.Licensing.LicenseService.HasFeature(Cclear.Core.Licensing.LicenseService.FeatureTrendForecast);
+
+    public bool CanExportReport => !IsExportingReport;
+
+    partial void OnIsExportingReportChanged(bool value) => OnPropertyChanged(nameof(CanExportReport));
+
+    /// <summary>导出本周 HTML 周报（含 Top10 大文件扫描，约 30 秒）。</summary>
+    [RelayCommand(CanExecute = nameof(CanExportReport))]
+    private async Task ExportWeeklyReportAsync()
+    {
+        IsExportingReport = true;
+        var driveLetter = Cclear.Core.Win32.DriveCatalog.TryGetRoot(SettingsStore.Instance.SelectedDrive) is { } root
+            ? root[..1]
+            : "C";
+        ReportStatusText = $"正在生成 {driveLetter} 盘周报（扫描大文件约 30 秒）…";
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            var weekStart = today.AddDays(((int)today.DayOfWeek + 6) % 7 - 6); // 本周一
+            var entries = Cclear.Core.History.CleanHistoryStore.Read();
+            var weekEntries = entries.Where(e => e.TimeUtc.ToLocalTime().Date >= weekStart.ToDateTime(TimeOnly.MinValue)).ToList();
+            var weekCleanBytes = weekEntries.Sum(e => Math.Max(0, e.Bytes));
+            var trend = Cclear.Core.History.CleanHistoryStore.BuildDailyTrend(entries, 30, today, driveLetter);
+            var snapshots = await Task.Run(() => Cclear.Core.Trend.SpaceSnapshotStore.Read());
+            var forecast = Cclear.Core.Trend.SpaceForecaster.Forecast(snapshots, driveLetter + ":\\");
+            var info = Cclear.Core.Win32.VolumeInformation.Query(driveLetter + ":\\");
+            ReportStatusText = "正在扫描大文件 Top10…";
+            var topFiles = await Task.Run(() =>
+            {
+                var scanner = new Cclear.Core.Scanner.ManagedTreeScanner();
+                var result = scanner.ScanAsync(new Cclear.Core.Scanner.ScanRequest(
+                    driveLetter + ":\\", SettingsStore.Instance.NormalizedExclusions()), null, CancellationToken.None).GetAwaiter().GetResult();
+                return Cclear.Core.Analysis.SpaceAnalysis.FindLargeFiles(
+                    result.Tree, Cclear.Core.Analysis.SpaceAnalysis.DefaultLargeFileThresholdBytes, 10)
+                    .Select(f => (f.Path, f.SizeBytes))
+                    .ToList();
+            });
+            var suggestions = new System.Collections.Generic.List<string>();
+            if (weekCleanBytes == 0)
+            {
+                suggestions.Add("本周还没有清理记录，可到“总览”执行一次体检。");
+            }
+            if (forecast is { Reliable: true })
+            {
+                suggestions.Add($"按最近趋势，{driveLetter} 盘约 {forecast.DaysUntilFull} 天后占满，建议开启每周自动清理。");
+            }
+            if (topFiles.Count > 0)
+            {
+                suggestions.Add("大文件多为虚拟机磁盘/安装包时，建议手动确认后处理。");
+            }
+            var path = await Task.Run(() => Cclear.Core.Reporting.WeeklyReportGenerator.WriteHtml(
+                new Cclear.Core.Reporting.WeeklyReportInput(
+                    driveLetter, weekStart, DateTime.Now, trend, weekCleanBytes, weekEntries.Count,
+                    info?.FreeBytes ?? 0, info?.TotalBytes ?? 0, forecast, topFiles, suggestions)));
+            ReportStatusText = "已导出：" + path;
+            UiServices.ToastSuccess("周报", "本周报告已生成");
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            ReportStatusText = "导出失败：" + ex.Message;
+        }
+        finally
+        {
+            IsExportingReport = false;
+        }
+    }
+
     // ---------- 许可证（F6：技术底座，本期不设功能墙） ----------
 
     [ObservableProperty]

@@ -37,5 +37,17 @@
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         <TextBlock Text="{Binding AutoCleanStatusText}" Margin="0,6,0,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+        <!--  每日空间采样（V3 P6：趋势预测与周报的数据源，非常驻）  -->
+        <TextBlock Text="每日空间采样" FontSize="18" FontWeight="SemiBold" Margin="0,22,0,0" />
+        <TextBlock Text="由独立计划任务每天拉起应用一次，追加一行剩余空间快照后即退出（无常驻）。用于总览页的“满盘预测”徽标与周报趋势图。"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,4" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal">
+            <CheckBox Content="启用每日空间采样" IsChecked="{Binding SpaceSamplingEnabled}" VerticalAlignment="Center" />
+            <ui:Button Content="刷新状态" Icon="{ui:SymbolIcon ArrowClockwise24}"
+                       Command="{Binding RefreshSamplingStatusCommand}" MinWidth="100" MinHeight="32" Margin="18,0,0,0" />
+        </StackPanel>
+        <TextBlock Text="{Binding SpaceSamplingStatusText}" Margin="0,8,0,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
     </StackPanel>
 </UserControl>
