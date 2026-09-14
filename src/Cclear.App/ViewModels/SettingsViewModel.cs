@@ -211,8 +211,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             {
                 ApplyScheduleFromSelection();
                 Cclear.Core.AutoClean.AutoCleanScheduler.Register(
-                    MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0, ExecutablePath);
-                AutoCleanStatusText = $"已注册：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理（仅 Safe 规则，进回收站）";
+                    new Cclear.Core.AutoClean.AutoCleanScheduleOptions(
+                        MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0,
+                        EnableLogonTrigger: LogonTriggerEnabled),
+                    ExecutablePath);
+                AutoCleanStatusText = $"已注册：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理（仅 Safe 规则，进回收站）"
+                    + (LogonTriggerEnabled ? " + 登录后 15 分钟" : "");
                 UiServices.ToastSuccess("自动清理", "计划任务已注册");
             }
             else
@@ -236,6 +240,97 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnSelectedHourChanged(int value) => OnScheduleChanged();
 
+    // ---------- 高级触发（V3 P7，Pro 底座：先放后收，未激活也可用） ----------
+
+    public bool AdvancedTriggersIsPro =>
+        Cclear.Core.Licensing.LicenseService.HasFeature(Cclear.Core.Licensing.LicenseService.FeatureAdvancedTriggers);
+
+    /// <summary>登录后延迟 15 分钟触发一次清理。</summary>
+    [ObservableProperty]
+    private bool _logonTriggerEnabled;
+
+    /// <summary>空间阈值触发开关（GB；0=关闭）。</summary>
+    [ObservableProperty]
+    private bool _spaceThresholdEnabled;
+
+    public int[] SpaceThresholdOptions { get; } = { 5, 10, 15, 20 };
+
+    [ObservableProperty]
+    private int _selectedSpaceThresholdGb = 10;
+
+    private bool _suppressAdvancedTriggers;
+
+    partial void OnLogonTriggerEnabledChanged(bool value)
+    {
+        if (_suppressAdvancedTriggers || !AutoCleanEnabled)
+        {
+            return;
+        }
+        ApplyAdvancedTriggers();
+    }
+
+    partial void OnSpaceThresholdEnabledChanged(bool value)
+    {
+        if (_suppressAdvancedTriggers)
+        {
+            return;
+        }
+        PersistAdvancedTriggers();
+    }
+
+    partial void OnSelectedSpaceThresholdGbChanged(int value)
+    {
+        if (_suppressAdvancedTriggers || !SpaceThresholdEnabled)
+        {
+            return;
+        }
+        PersistAdvancedTriggers();
+    }
+
+    private void ApplyAdvancedTriggers()
+    {
+        try
+        {
+            if (AutoCleanEnabled)
+            {
+                Cclear.Core.AutoClean.AutoCleanScheduler.Register(
+                    new Cclear.Core.AutoClean.AutoCleanScheduleOptions(
+                        MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0,
+                        EnableLogonTrigger: LogonTriggerEnabled),
+                    ExecutablePath);
+                AutoCleanStatusText = $"已更新：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理"
+                    + (LogonTriggerEnabled ? " + 登录后 15 分钟" : "");
+            }
+        }
+        catch (Exception ex)
+        {
+            AutoCleanStatusText = "更新计划失败：" + ex.Message;
+        }
+    }
+
+    private void PersistAdvancedTriggers()
+    {
+        var settings = SettingsStore.Instance;
+        settings.AutoCleanLogonTrigger = LogonTriggerEnabled;
+        settings.AutoCleanSpaceThresholdGb = SpaceThresholdEnabled ? SelectedSpaceThresholdGb : 0;
+        SettingsStore.Save();
+        ApplyAdvancedTriggers();
+        StatusText = SpaceThresholdEnabled
+            ? $"空间阈值触发已开启：低于 {SelectedSpaceThresholdGb} GB 时由每日采样任务拉起一次清理（同一天最多一次）"
+            : "空间阈值触发已关闭";
+    }
+
+    private void LoadAdvancedTriggers()
+    {
+        var settings = SettingsStore.Instance;
+        _suppressAdvancedTriggers = true;
+        LogonTriggerEnabled = settings.AutoCleanLogonTrigger;
+        SpaceThresholdEnabled = settings.AutoCleanSpaceThresholdGb > 0;
+        SelectedSpaceThresholdGb = Math.Clamp(
+            settings.AutoCleanSpaceThresholdGb is > 0 and var gb ? gb : 10, SpaceThresholdOptions[0], SpaceThresholdOptions[^1]);
+        _suppressAdvancedTriggers = false;
+    }
+
     private bool _suppressAutoCleanToggle;
 
     private void OnScheduleChanged()
@@ -248,8 +343,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             ApplyScheduleFromSelection();
             Cclear.Core.AutoClean.AutoCleanScheduler.Register(
-                MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0, ExecutablePath);
-            AutoCleanStatusText = $"已更新：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理";
+                new Cclear.Core.AutoClean.AutoCleanScheduleOptions(
+                    MapWeekDay(SelectedWeekDayIndex), SelectedHour, 0,
+                    EnableLogonTrigger: LogonTriggerEnabled),
+                ExecutablePath);
+            AutoCleanStatusText = $"已更新：每{WeekDayOptions[SelectedWeekDayIndex]} {SelectedHour:00}:00 自动清理"
+                + (LogonTriggerEnabled ? " + 登录后 15 分钟" : "");
         }
         catch (Exception ex)
         {
@@ -538,6 +637,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         AutoCleanEnabled = Cclear.Core.AutoClean.AutoCleanScheduler.IsRegistered();
         _suppressAutoCleanToggle = false;
         RefreshAutoCleanLastRun();
+        LoadAdvancedTriggers();
+        RefreshSamplingStatus();
     }
 
     partial void OnSelectedThemeChanged(string value)

@@ -31,18 +31,21 @@ public static class SpaceSnapshotStore
         writer.WriteLine(JsonSerializer.Serialize(snapshot, JsonOptions));
     }
 
-    public static void AppendForDrive(string driveRoot, DateTime? utcNow = null, string? path = null)
+    /// <summary>查询卷空间并追加快照；返回刚写入的快照（卷不可读返回 null）。</summary>
+    public static SpaceSnapshot? AppendForDrive(string driveRoot, DateTime? utcNow = null, string? path = null)
     {
         var info = VolumeInformation.Query(driveRoot);
         if (info is null)
         {
-            return;
+            return null;
         }
-        Append(new SpaceSnapshot(
+        var snapshot = new SpaceSnapshot(
             utcNow ?? DateTime.UtcNow,
             NormalizeDriveRoot(driveRoot),
             info.FreeBytes,
-            info.TotalBytes), path);
+            info.TotalBytes);
+        Append(snapshot, path);
+        return snapshot;
     }
 
     public static IReadOnlyList<SpaceSnapshot> Read(string? path = null)

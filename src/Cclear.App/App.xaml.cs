@@ -13,17 +13,29 @@ public partial class App : Application
         base.OnStartup(e);
         if (e.Args.Any(a => string.Equals(a, "--sample-space", StringComparison.OrdinalIgnoreCase)))
         {
-            // 每日空间采样（V3 P6 计划任务无头模式）：追加一行快照即退出
-            var driveRoot = Cclear.Core.Win32.DriveCatalog.TryGetRoot(Services.SettingsStore.Instance.SelectedDrive) ?? @"C:\";
+            // 每日空间采样（V3 P6 计划任务无头模式）：追加一行快照即退出；
+            // V3 P7 高级触发：剩余空间低于阈值时防抖拉起一次 autoclean（仍无常驻）
+            var exitCode = 0;
             try
             {
-                Cclear.Core.Trend.SpaceSnapshotStore.AppendForDrive(driveRoot);
-                Shutdown(0);
+                var settings = Services.SettingsStore.Instance;
+                var driveRoot = Cclear.Core.Win32.DriveCatalog.TryGetRoot(settings.SelectedDrive) ?? @"C:\";
+                var snapshot = Cclear.Core.Trend.SpaceSnapshotStore.AppendForDrive(driveRoot);
+                if (snapshot is not null
+                    && Cclear.Core.Trend.SpaceThresholdEvaluator.ShouldTrigger(snapshot.FreeBytes, settings.AutoCleanSpaceThresholdGb)
+                    && !Cclear.Core.Trend.SpaceThresholdEvaluator.AlreadyTriggeredToday(settings.LastSpaceThresholdTriggerUtc, DateTime.UtcNow)
+                    && Cclear.Core.AutoClean.AutoCleanScheduler.IsRegistered())
+                {
+                    settings.LastSpaceThresholdTriggerUtc = DateTime.UtcNow;
+                    settings.Save();
+                    Cclear.Core.AutoClean.AutoCleanScheduler.RunNow();
+                }
             }
             catch (Exception)
             {
-                Shutdown(1);
+                exitCode = 1;
             }
+            Shutdown(exitCode);
             return;
         }
         if (e.Args.Any(a => string.Equals(a, "--autoclean", StringComparison.OrdinalIgnoreCase)))

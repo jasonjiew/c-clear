@@ -39,6 +39,15 @@ public sealed class AppSettings
     /// <summary>选中的磁盘盘符（如 "C"，V3 多盘支持；空/无效回退系统盘）。</summary>
     public string SelectedDrive { get; set; } = "C";
 
+    /// <summary>自动清理高级触发（V3 P7）：登录后延迟 15 分钟触发一次清理。</summary>
+    public bool AutoCleanLogonTrigger { get; set; }
+
+    /// <summary>自动清理高级触发（V3 P7）：剩余空间低于该值(GB)时由每日采样任务拉起清理；0=关闭。</summary>
+    public int AutoCleanSpaceThresholdGb { get; set; }
+
+    /// <summary>阈值触发防抖：上次由阈值拉起清理的时刻（UTC）。</summary>
+    public DateTime? LastSpaceThresholdTriggerUtc { get; set; }
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "C-Clear", "settings.json");

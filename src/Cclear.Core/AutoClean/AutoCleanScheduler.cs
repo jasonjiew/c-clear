@@ -10,6 +10,15 @@ public sealed record AutoCleanStatus(
     uint? LastResult,
     string? Detail);
 
+/// <summary>自动清理计划选项（V3 P7 高级触发）。</summary>
+public sealed record AutoCleanScheduleOptions(
+    DayOfWeek DayOfWeek,
+    int Hour,
+    int Minute,
+    /// <summary>登录后延迟 15 分钟额外触发一次。</summary>
+    bool EnableLogonTrigger = false,
+    int LogonDelayMinutes = 15);
+
 /// <summary>
 /// Windows 计划任务封装（Task Scheduler COM，语言区域无关）。
 /// 注册/取消/立即运行/查询四态；按周计划以当前用户身份运行（不提权，无需管理员）。
@@ -79,7 +88,11 @@ public static class AutoCleanScheduler
     }
 
     /// <summary>注册每周计划任务（当前用户、交互令牌，不提权）。</summary>
-    public static void Register(DayOfWeek dayOfWeek, int hour, int minute, string exePath)
+    public static void Register(DayOfWeek dayOfWeek, int hour, int minute, string exePath) =>
+        Register(new AutoCleanScheduleOptions(dayOfWeek, hour, minute), exePath);
+
+    /// <summary>注册计划任务（V3 P7：周触发 + 可选登录触发）。</summary>
+    public static void Register(AutoCleanScheduleOptions options, string exePath)
     {
         var exe = Path.GetFullPath(exePath);
         if (!File.Exists(exe))
@@ -101,10 +114,18 @@ public static class AutoCleanScheduler
             definition.Settings.StopIfGoingOnBatteries = false;
 
             dynamic trigger = definition.Triggers.Create(3); // TASK_TRIGGER_WEEKLY
-            var next = NextOccurrence(dayOfWeek, hour, minute);
+            var next = NextOccurrence(options.DayOfWeek, options.Hour, options.Minute);
             trigger.StartBoundary = next.ToString("yyyy-MM-ddTHH:mm:ss");
             trigger.WeeksInterval = 1;
-            trigger.DaysOfWeek = 1 << (int)dayOfWeek; // 1=周日 … 64=周六
+            trigger.DaysOfWeek = 1 << (int)options.DayOfWeek; // 1=周日 … 64=周六
+
+            if (options.EnableLogonTrigger)
+            {
+                // 登录触发（V3 P7）：当前用户登录后延迟 N 分钟触发一次
+                dynamic logonTrigger = definition.Triggers.Create(9); // TASK_TRIGGER_LOGON
+                logonTrigger.UserId = Environment.UserDomainName + "\\" + Environment.UserName;
+                logonTrigger.Delay = $"PT{Math.Max(1, options.LogonDelayMinutes)}M"; // ISO8601 时长
+            }
 
             dynamic action = definition.Actions.Create(0); // TASK_ACTION_EXEC
             action.Path = exe;
