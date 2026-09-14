@@ -15,6 +15,7 @@
             <converters:EmptyStateVisibilityConverter x:Key="EmptyStateVisibility" />
             <converters:BoolToInvisibilityConverter x:Key="BoolToInvisibility" />
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:InverseBoolConverter x:Key="InverseBool" />
             <converters:TextToVisibilityConverter x:Key="TextToVisibility" />
 
             <!--  GridView 列头主题化（默认模板深色下白底刺眼）  -->

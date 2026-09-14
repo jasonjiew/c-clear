@@ -171,6 +171,156 @@ public sealed partial class DuplicatesViewModel : ObservableObject
             IsBusy = false;
         }
     }
+
+    // ---------- 下载重复（V3 P8，Pro 底座：先放后收，未激活也可用） ----------
+
+    /// <summary>当前许可证是否已激活下载重复检测（未激活显示 Pro 徽标但功能可用）。</summary>
+    public bool DownloadIsPro =>
+        Cclear.Core.Licensing.LicenseService.HasFeature(Cclear.Core.Licensing.LicenseService.FeatureDownloadDuplicates);
+
+    [ObservableProperty]
+    private bool _isDownloadBusy;
+
+    [ObservableProperty]
+    private string _downloadStatusText = "点击“扫描下载重复”开始（默认目录 = 当前用户 Downloads，含子目录）。";
+
+    [ObservableProperty]
+    private string _downloadSummaryText = "";
+
+    public ObservableCollection<DownloadGroupViewModel> DownloadGroups { get; } = new();
+
+    public bool HasDownloadGroups => DownloadGroups.Count > 0;
+
+    private string DownloadsRoot => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+    partial void OnIsDownloadBusyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanScanDownloads));
+        OnPropertyChanged(nameof(CanDeleteDownloadDuplicates));
+        FindDownloadDuplicatesCommand.NotifyCanExecuteChanged();
+        DeleteDownloadDuplicatesCommand.NotifyCanExecuteChanged();
+    }
+
+    public bool CanScanDownloads => !IsDownloadBusy && !IsBusy;
+    public bool CanDeleteDownloadDuplicates => !IsDownloadBusy && DownloadGroups.Any(g => g.Files.Any(f => f.IsChecked));
+
+    /// <summary>扫描 Downloads 的同名重复下载（每组默认保留最新一份）。</summary>
+    [RelayCommand(CanExecute = nameof(CanScanDownloads))]
+    private async Task FindDownloadDuplicatesAsync()
+    {
+        IsDownloadBusy = true;
+        DownloadGroups.Clear();
+        DownloadSummaryText = "";
+        try
+        {
+            var report = await DownloadDuplicateDetector.FindAsync(
+                new DownloadDuplicateOptions(DownloadsRoot, SettingsStore.Instance.NormalizedExclusions()),
+                new Progress<string>(s => DownloadStatusText = s), CancellationToken.None);
+            foreach (var group in report.Groups.Take(200))
+            {
+                var vm = new DownloadGroupViewModel(group);
+                vm.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(DownloadGroupViewModel.SelectedCountText))
+                    {
+                        OnPropertyChanged(nameof(CanDeleteDownloadDuplicates));
+                        DeleteDownloadDuplicatesCommand.NotifyCanExecuteChanged();
+                    }
+                };
+                DownloadGroups.Add(vm);
+            }
+            DownloadSummaryText = report.Groups.Count == 0
+                ? "没有发现同名重复下载。"
+                : $"发现 {report.Groups.Count} 组同名重复下载，保留最新可回收 {ByteSizeFormatter.Format(report.WastedBytes)}"
+                  + (report.Groups.Count > 200 ? "（仅显示前 200 组）" : "") + "。";
+            DownloadStatusText = $"扫描 {report.FilesScanned:N0} 个文件，用时 {report.Elapsed.TotalSeconds:F1} 秒";
+        }
+        catch (Exception ex)
+        {
+            DownloadStatusText = "扫描失败：" + ex.Message;
+        }
+        finally
+        {
+            IsDownloadBusy = false;
+        }
+    }
+
+    /// <summary>删除勾选的旧版本下载（进回收站，可还原）。</summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteDownloadDuplicates))]
+    private void DeleteDownloadDuplicates()
+    {
+        var items = DownloadGroups
+            .SelectMany(g => g.Files.Where(f => f.IsChecked))
+            .Select(f => new CleanItem(f.Path, f.SizeBytesValue, f.LastWriteTimeUtc))
+            .ToList();
+        ExecuteCategories("download-duplicates", items, "删除下载重复文件（每组保留最新一份）");
+        DownloadGroups.Clear();
+        OnPropertyChanged(nameof(HasDownloadGroups));
+        OnPropertyChanged(nameof(CanDeleteDownloadDuplicates));
+        DeleteDownloadDuplicatesCommand.NotifyCanExecuteChanged();
+    }
+}
+
+/// <summary>下载重复组 VM：默认勾选旧版本（保留最新一份不勾选）。</summary>
+public sealed partial class DownloadGroupViewModel : ObservableObject
+{
+    public DownloadGroupViewModel(DownloadDuplicateGroup group)
+    {
+        Pattern = group.Pattern;
+        SameContent = group.SameContent;
+        Files = new ObservableCollection<DownloadFileRow>();
+        foreach (var file in group.Files)
+        {
+            var row = new DownloadFileRow(file);
+            row.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(DownloadFileRow.IsChecked))
+                {
+                    OnPropertyChanged(nameof(SelectedCountText));
+                }
+            };
+            Files.Add(row);
+        }
+    }
+
+    public string Pattern { get; }
+    public bool SameContent { get; }
+
+    public string Header =>
+        $"{Pattern} × {Files.Count} 份 · 每份 {ByteSizeFormatter.Format(Files[0].SizeBytesValue)}"
+        + (SameContent ? " · 大小一致（可能内容相同）" : " · 大小不同（可能是不同版本）");
+
+    public string SelectedCountText => $"已选删除 {Files.Count(f => f.IsChecked)}/{Files.Count}";
+
+    public ObservableCollection<DownloadFileRow> Files { get; }
+}
+
+/// <summary>下载重复文件行。</summary>
+public sealed partial class DownloadFileRow : ObservableObject
+{
+    public DownloadFileRow(DownloadDuplicateFile file)
+    {
+        Path = file.Path;
+        SizeBytesValue = file.SizeBytes;
+        LastWriteTimeUtc = file.LastWriteTimeUtc;
+        SizeText = ByteSizeFormatter.Format(file.SizeBytes);
+        LastWriteText = file.LastWriteTimeUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        IsKeeper = file.IsKeeper;
+        TagText = file.IsKeeper ? "保留最新" : "";
+        _isChecked = !file.IsKeeper;
+    }
+
+    public string Path { get; }
+    public long SizeBytesValue { get; }
+    public DateTime LastWriteTimeUtc { get; }
+    public string SizeText { get; }
+    public string LastWriteText { get; }
+    public bool IsKeeper { get; }
+    public string TagText { get; }
+
+    [ObservableProperty]
+    private bool _isChecked;
 }
 
 /// <summary>一组重复文件：默认保留最旧一份（不勾选），其余勾选待删。</summary>

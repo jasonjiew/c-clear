@@ -27,6 +27,8 @@
                            Command="{Binding DeleteDuplicatesCommand}" MinWidth="170" />
                 <ui:Button Content="删除勾选的空目录" Appearance="Danger" Icon="{ui:SymbolIcon Delete24}"
                            Command="{Binding DeleteEmptyDirsCommand}" MinWidth="160" Margin="8,0,0,0" />
+                <ui:Button Content="删除勾选的下载旧版本" Appearance="Danger" Icon="{ui:SymbolIcon Delete24}"
+                           Command="{Binding DeleteDownloadDuplicatesCommand}" MinWidth="180" Margin="8,0,0,0" />
             </StackPanel>
             <TextBlock Text="{Binding StatusText}" Margin="0,0,0,0" HorizontalAlignment="Right"
                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="560"
@@ -102,6 +104,70 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
+                </Grid>
+            </TabItem>
+
+            <!--  下载重复（V3 P8，Pro 底座：先放后收，未激活也可用）  -->
+            <TabItem Header="下载重复">
+                <Grid Margin="0,8,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Content="扫描下载重复" Icon="{ui:SymbolIcon Download24}" Appearance="Primary"
+                                       Command="{Binding FindDownloadDuplicatesCommand}" MinWidth="130" MinHeight="34" />
+                            <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="6,2"
+                                    Margin="8,0,0,0" VerticalAlignment="Center"
+                                    Visibility="{Binding DownloadIsPro, Converter={StaticResource BoolToInvisibility}}">
+                                <TextBlock Text="Pro" FontSize="11" FontWeight="Bold" Foreground="White" />
+                            </Border>
+                            <TextBlock Text="{Binding DownloadStatusText}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding DownloadSummaryText}" Margin="2,8,0,0" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <Border Visibility="{Binding DownloadGroups.Count, Converter={StaticResource EmptyStateVisibility}}"
+                            VerticalAlignment="Top" Margin="0,90,0,0">
+                        <StackPanel HorizontalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Download24" FontSize="52" HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="没有发现同名重复下载" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                            <TextBlock Text="扫描当前用户 Downloads 目录（含子目录），识别 setup.exe / setup (1).exe 这类重复下载。"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,90,0,0">
+                        <ItemsControl ItemsSource="{Binding DownloadGroups}" Margin="4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander Margin="0,2" IsExpanded="False">
+                                        <Expander.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding SelectedCountText}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="10,0,0,0" />
+                                            </StackPanel>
+                                        </Expander.Header>
+                                        <ItemsControl ItemsSource="{Binding Files}" Margin="24,2,0,6">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,1">
+                                                        <CheckBox IsChecked="{Binding IsChecked}" IsEnabled="{Binding IsKeeper, Converter={StaticResource InverseBool}}" VerticalAlignment="Center"
+                                                                  ToolTip="勾选=删除；每组默认保留最新一份" />
+                                                        <TextBlock Text="{Binding SizeText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="8,0,0,0" MinWidth="70" />
+                                                        <TextBlock Text="{Binding LastWriteText}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="8,0,0,0" MinWidth="120" />
+                                                        <TextBlock Text="{Binding TagText}" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Margin="8,0,0,0" MinWidth="60" />
+                                                        <TextBlock Text="{Binding Path}" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
+                                                                   ToolTip="{Binding Path}" MaxWidth="600" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </Grid>
             </TabItem>
         </TabControl>
