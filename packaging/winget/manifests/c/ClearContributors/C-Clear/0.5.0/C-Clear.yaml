@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
+PackageIdentifier: ClearContributors.C-Clear
+PackageVersion: 0.5.0
+PackageLocale: en-US
+Publisher: C-Clear Contributors
+PublisherUrl: https://github.com/wangjie0721666-web
+PackageName: C-Clear
+PackageUrl: https://github.com/wangjie0721666-web/c-clear
+License: MIT
+LicenseUrl: https://github.com/wangjie0721666-web/c-clear/blob/main/LICENSE
+Copyright: Copyright (c) 2026 C-Clear Contributors
+ShortDescription: Windows disk cleaner focused on freeing C drive space safely.
+Description: |-
+  C-Clear scans your C drive (and any fixed drive), shows what occupies space,
+  identifies safely cleanable content with a curated rule pack, and cleans to
+  the Recycle Bin with a full JSONL audit trail. V3 adds a WinDirStat-style
+  squarified treemap with drill-down, multi-drive support, a smart cleanup
+  advisor, uninstall leftover scan, disk-full forecasting with HTML weekly
+  reports, advanced auto-clean triggers (logon + free-space threshold) and
+  download duplicate detection. LiveCharts2 trend charts and a polished
+  Fluent UI with light/dark/system themes.
+Tags:
+  - disk-cleanup
+  - storage
+  - utilities
+ReleaseNotes: |-
+  Third public release (V3): LiveCharts2 trend charts and micro-interactions;
+  WinDirStat-style squarified treemap with drill-down (flagship); multi-drive
+  support (analyze/health-check/clean D/E drives with blacklist adaptation);
+  smart cleanup advisor, uninstall leftover scan, disk-full forecast with HTML
+  weekly reports, advanced auto-clean triggers (logon + free-space threshold),
+  download duplicate detection (Pro feature set, free core never gated);
+  offline Ed25519 licensing switch enabled.
+ReleaseNotesUrl: https://github.com/wangjie0721666-web/c-clear/releases/tag/v0.5.0
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/wangjie0721666-web/c-clear/releases/download/v0.5.0/Cclear.App.exe
+    InstallerSha256: CF26F42F9AB1EB83CA7CB6689F7FEC8B8C493BE638FEB025B1F5DD4C457D59A7
+    Commands:
+      - cclear
+ManifestType: singleton
+ManifestVersion: 1.6.0
