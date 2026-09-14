@@ -53,4 +53,27 @@ public static class UiServices
         var result = await messageBox.ShowDialogAsync();
         return result == MessageBoxResult.Primary;
     }
+
+    /// <summary>
+    /// Pro 引导卡（V3 P9）：仅点击 Pro 徽标/功能入口时展示，绝无主动弹窗。
+    /// 信息 = 定价（¥49 买断）+ 开源仓库 + 激活方式；不设联网 DRM。
+    /// </summary>
+    public static Task ShowProGuide()
+    {
+        var messageBox = new MessageBox
+        {
+            Title = "C-Clear Pro（¥49 买断）",
+            Content = "Pro 功能（永久买断，无订阅、无广告、无推广弹窗）：\n\n"
+                + "· 智能清理建议（一键勾选推荐项）\n"
+                + "· 卸载残留扫描（只引导，回收站可还原）\n"
+                + "· 趋势预测 + HTML 周报导出\n"
+                + "· 自动清理高级触发（登录后 / 空间阈值）\n"
+                + "· 下载重复检测（保留最新）\n\n"
+                + "免费核心永不缩水：体检、清理、空间矩形图、多盘支持、每周自动清理全部免费。\n\n"
+                + "购买与激活：在 GitHub 仓库（github.com/wangjie0721666-web/c-clear）README 获取购买链接；"
+                + "收到 license.dat 后到 设置 → 关于 → 导入许可证 即刻解锁（离线验证，无联网 DRM）。",
+            PrimaryButtonText = "知道了",
+        };
+        return messageBox.ShowDialogAsync();
+    }
 }

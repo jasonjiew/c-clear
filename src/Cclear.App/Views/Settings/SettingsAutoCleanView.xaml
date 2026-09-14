@@ -41,11 +41,9 @@
         <!--  高级触发（V3 P7，Pro 底座：先放后收，未激活也可用）  -->
         <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
             <TextBlock Text="高级触发" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-            <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="6,2"
-                    Margin="8,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding AdvancedTriggersIsPro, Converter={StaticResource BoolToInvisibility}}">
-                <TextBlock Text="Pro" FontSize="11" FontWeight="Bold" Foreground="White" />
-            </Border>
+            <Button Style="{StaticResource ProBadgeButton}" Content="Pro" Margin="8,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding AdvancedTriggersIsPro, Converter={StaticResource BoolToInvisibility}}"
+                    Click="OnProBadgeClick" />
         </StackPanel>
         <TextBlock Text="计划任务多触发器，依旧无常驻后台：登录触发由 Windows 计划任务原生支持；空间阈值触发由每日采样任务判定后拉起（同一天最多一次）。"
                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,6,0,4" TextWrapping="Wrap" />

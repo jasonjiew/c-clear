@@ -43,3 +43,7 @@ BenchmarkDotNet.Artifacts/
 Thumbs.db
 desktop.ini
 uidebug.log
+
+# 会话脚手架与本地测试目录（不入库）
+.tmp/
+tmp-cloudtest/

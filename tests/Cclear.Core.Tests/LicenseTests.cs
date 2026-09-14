@@ -137,4 +137,39 @@ public class LicenseTests : IDisposable
         Assert.False(result.IsValid);
         Assert.Null(result.License);
     }
+
+    [Fact]
+    public void License_AllProFeatures_HasFeatureUnlocksEach()
+    {
+        // V3 P9：签发含全部 Pro 功能的许可证 → 每个功能开关解锁
+        var seed = RandomNumberGenerator.GetBytes(32);
+        var publicKeyHex = LicenseService.DerivePublicKeyHex(seed);
+        var payload = new LicensePayload("测试用户", "CC-TEST-ALL", LicenseService.ProductId,
+            LicenseService.ProFeatures, "2026-01-01T00:00:00Z", null);
+        File.WriteAllText(_path, LicenseService.BuildLicenseFile(payload, seed));
+
+        var result = LicenseService.ValidateFile(_path, publicKeyHex);
+        Assert.True(result.IsValid);
+        Assert.NotEmpty(LicenseService.ProFeatures);
+        foreach (var feature in LicenseService.ProFeatures)
+        {
+            Assert.True(result.License!.HasFeature(feature), feature);
+            Assert.True(LicenseService.ValidateFile(_path, publicKeyHex).License!.HasFeature(feature), feature);
+        }
+        // 非列表功能不受支持
+        Assert.False(result.License!.HasFeature("nonexistent-feature"));
+    }
+
+    [Fact]
+    public void License_FeatureSubset_OnlyUnlocksSubset()
+    {
+        var seed = RandomNumberGenerator.GetBytes(32);
+        var publicKeyHex = LicenseService.DerivePublicKeyHex(seed);
+        var payload = new LicensePayload("单功能用户", "CC-TEST-ONE", LicenseService.ProductId,
+            new[] { LicenseService.FeatureSmartAdvisor }, "2026-01-01T00:00:00Z", null);
+        File.WriteAllText(_path, LicenseService.BuildLicenseFile(payload, seed));
+        var license = LicenseService.ValidateFile(_path, publicKeyHex).License!;
+        Assert.True(license.HasFeature(LicenseService.FeatureSmartAdvisor));
+        Assert.False(license.HasFeature(LicenseService.FeatureLeftoverScan));
+    }
 }

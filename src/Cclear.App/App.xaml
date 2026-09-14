@@ -45,6 +45,31 @@
                 <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
             </Style>
 
+            <!--  Pro 徽标按钮（V3 P9）：仅点击时弹出 Pro 引导卡，绝无主动弹窗  -->
+            <Style x:Key="ProBadgeButton" TargetType="{x:Type Button}">
+                <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="Padding" Value="6,1" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type Button}">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="4"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="0.85" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!--  卡片 hover 抬升（V3 微交互：阴影随悬停出现，可点击的反馈暗示）  -->
             <Style TargetType="{x:Type ui:Card}" BasedOn="{StaticResource {x:Type ui:Card}}">
                 <Style.Triggers>

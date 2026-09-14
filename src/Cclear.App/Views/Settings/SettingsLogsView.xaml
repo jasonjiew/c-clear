@@ -12,11 +12,9 @@
                        Command="{Binding OpenLogsFolderCommand}" MinWidth="140" MinHeight="34" Appearance="Primary" />
             <ui:Button Content="导出本周 HTML 周报" Icon="{ui:SymbolIcon Document24}"
                        Command="{Binding ExportWeeklyReportCommand}" MinWidth="160" MinHeight="34" Margin="8,0,0,0" />
-            <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="6,2"
-                    Margin="8,0,0,0" VerticalAlignment="Center"
-                    Visibility="{Binding ReportIsPro, Converter={StaticResource BoolToInvisibility}}">
-                <TextBlock Text="Pro" FontSize="11" FontWeight="Bold" Foreground="White" />
-            </Border>
+            <Button Style="{StaticResource ProBadgeButton}" Content="Pro" Margin="8,0,0,0" VerticalAlignment="Center"
+                    Visibility="{Binding ReportIsPro, Converter={StaticResource BoolToInvisibility}}"
+                    Click="OnProBadgeClick" />
             <TextBlock Text="{Binding ReportStatusText}" Margin="12,0,0,0" VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
         </StackPanel>

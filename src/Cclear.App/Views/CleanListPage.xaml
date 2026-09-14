@@ -15,11 +15,9 @@
                     <ui:SymbolIcon Symbol="Sparkle24" FontSize="18" VerticalAlignment="Center"
                                    Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
                     <TextBlock Text="智能建议" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" />
-                    <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4"
-                            Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
-                            Visibility="{Binding AdvisorIsPro, Converter={StaticResource BoolToInvisibility}}">
-                        <TextBlock Text="Pro" FontSize="11" FontWeight="Bold" Foreground="White" />
-                    </Border>
+                    <Button Style="{StaticResource ProBadgeButton}" Content="Pro" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Visibility="{Binding AdvisorIsPro, Converter={StaticResource BoolToInvisibility}}"
+                            Click="OnProBadgeClick" />
                     <TextBlock Text="{Binding AdvisorBannerText}" VerticalAlignment="Center" Margin="10,0,0,0"
                                TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                MaxWidth="640" />

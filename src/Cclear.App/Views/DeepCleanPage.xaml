@@ -116,11 +116,9 @@
                         <ui:SymbolIcon Symbol="Delete24" Margin="0,0,8,0"
                                        Foreground="{DynamicResource SystemFillColorCautionBrush}" />
                         <TextBlock Text="卸载残留扫描" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Border Background="{DynamicResource AccentFillColorDefaultBrush}" CornerRadius="4"
-                                Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
-                                Visibility="{Binding LeftoverIsPro, Converter={StaticResource BoolToInvisibility}}">
-                            <TextBlock Text="Pro" FontSize="11" FontWeight="Bold" Foreground="White" />
-                        </Border>
+                        <Button Style="{StaticResource ProBadgeButton}" Content="Pro" Margin="8,0,0,0" VerticalAlignment="Center"
+                                Visibility="{Binding LeftoverIsPro, Converter={StaticResource BoolToInvisibility}}"
+                                Click="OnProBadgeClick" />
                     </StackPanel>
                     <TextBlock Text="是什么：应用卸载后残留在 AppData/ProgramData 里的孤儿数据目录。为什么：卸载程序通常不清理用户数据目录，日积月累占用可达数 GB。代价：勾选后进回收站可还原；已按注册表卸载登记过滤，最近 14 天有改动的目录（可能正在安装）自动排除；Program Files 内的受保护目录仅提示不提供删除。"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,8,0,10" TextWrapping="Wrap" />
